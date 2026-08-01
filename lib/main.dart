@@ -1,8 +1,13 @@
+import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:semarfield/core/theme/app_theme.dart';
-import 'package:semarfield/features/showcase/style_guide_screen.dart';
+import 'package:semarfield/features/auth/auth_gate.dart';
+import 'package:semarfield/firebase_options.dart';
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const SemarFieldApp());
 }
 
@@ -15,9 +20,7 @@ class SemarFieldApp extends StatelessWidget {
       title: 'SemarField',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.light,
-      // Sementara arahkan ke style guide dulu untuk verifikasi Sprint 0.
-      // Nanti di Sprint 1 ini diganti jadi AuthGate().
-      home: const StyleGuideScreen(),
+      home: const AuthGate(),
     );
   }
 }

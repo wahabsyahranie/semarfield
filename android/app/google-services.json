@@ -1,0 +1,54 @@
+{
+  "project_info": {
+    "project_number": "18652500470",
+    "project_id": "semarfield",
+    "storage_bucket": "semarfield.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:18652500470:android:adcd93801256cd75b437d7",
+        "android_client_info": {
+          "package_name": "com.example.semarfield"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "18652500470-9bb8u1u03qcec66e1k2hdom6fesuprr5.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.semarfield",
+            "certificate_hash": "485e6875555a146ee7c4678c1340efa67bf33ee9"
+          }
+        },
+        {
+          "client_id": "18652500470-finj6b5utkpa3rh80hrd13r15vcmfqde.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDjziLk-igg2jzLiimni30mwmU_AZxuAI0"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "18652500470-finj6b5utkpa3rh80hrd13r15vcmfqde.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "18652500470-q5cghlhaob5gjkufoh3en0j9ips201o3.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.example.semarfield"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

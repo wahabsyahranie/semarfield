@@ -10,11 +10,11 @@ dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.6
-
+  
   # --- Sprint 1: Auth ---
-  # firebase_core: ^3.6.0
-  # firebase_auth: ^5.3.1
-  # google_sign_in: ^6.2.1
+  firebase_core: ^4.12.1
+  firebase_auth: ^6.5.6
+  google_sign_in: ^6.2.1
 
   # --- Sprint 2: Local DB ---
   # drift: ^2.20.0

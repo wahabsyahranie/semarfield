@@ -4,7 +4,7 @@ import '../theme/app_radius.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
 
-enum AppButtonVariant { primary, secondary, wine, danger }
+enum AppButtonVariant { primary, secondary, wine, danger, google }
 
 /// Tombol standar aplikasi. Pakai ini di semua tempat — jangan
 /// bikin ElevatedButton/OutlinedButton custom baru per layar.
@@ -37,10 +37,7 @@ class AppButton extends StatelessWidget {
         ? SizedBox(
             width: 16,
             height: 16,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: colors.fg,
-            ),
+            child: CircularProgressIndicator(strokeWidth: 2, color: colors.fg),
           )
         : Row(
             mainAxisSize: MainAxisSize.min,
@@ -49,7 +46,10 @@ class AppButton extends StatelessWidget {
                 Icon(icon, size: 16, color: colors.fg),
                 const SizedBox(width: AppSpacing.sm),
               ],
-              Text(label, style: AppTypography.button.copyWith(color: colors.fg)),
+              Text(
+                label,
+                style: AppTypography.button.copyWith(color: colors.fg),
+              ),
             ],
           );
 
@@ -86,9 +86,19 @@ class AppButton extends StatelessWidget {
       case AppButtonVariant.wine:
         return _BtnColors(bg: AppColors.wine, fg: Colors.white);
       case AppButtonVariant.secondary:
-        return _BtnColors(bg: Colors.white, fg: AppColors.forestDeep, border: AppColors.forestDeep);
+        return _BtnColors(
+          bg: Colors.white,
+          fg: AppColors.wine,
+          border: AppColors.wine,
+        );
       case AppButtonVariant.danger:
-        return _BtnColors(bg: Colors.transparent, fg: AppColors.redWarn, border: AppColors.redWarn);
+        return _BtnColors(
+          bg: Colors.transparent,
+          fg: AppColors.redWarn,
+          border: AppColors.redWarn,
+        );
+      case AppButtonVariant.google:
+        return _BtnColors(bg: AppColors.parchment, fg: Colors.black);
     }
   }
 }
