@@ -1,6 +1,6 @@
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import '../home/home_screen_placeholder.dart';
+import '../home/home_screen.dart';
 import 'auth_repository.dart';
 import 'login_screen.dart';
 
@@ -29,7 +29,7 @@ class AuthGate extends StatelessWidget {
           return const LoginScreen();
         }
 
-        return const HomeScreenPlaceholder();
+        return const HomeScreen();
       },
     );
   }
