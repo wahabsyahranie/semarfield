@@ -1,5 +1,5 @@
 name: semarfield
-description: "A new Flutter project."
+description: Aplikasi pendataan lapangan Nepenthes — offline-first.
 publish_to: 'none'
 version: 0.1.0
 
@@ -9,11 +9,59 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  cupertino_icons: ^1.0.6
+
+  # --- Sprint 1: Auth ---
+  # firebase_core: ^3.6.0
+  # firebase_auth: ^5.3.1
+  # google_sign_in: ^6.2.1
+
+  # --- Sprint 2: Local DB ---
+  # drift: ^2.20.0
+  # sqlite3_flutter_libs: ^0.5.24
+  # path_provider: ^2.1.4
+  # path: ^1.9.0
+
+  # --- Sprint 4: Form (GPS + foto) ---
+  # geolocator: ^13.0.1
+  # image_picker: ^1.1.2
+
+  # --- Sprint 6: Sync ---
+  # cloud_firestore: ^5.4.3
+  # firebase_storage: ^12.3.2
+  # connectivity_plus: ^6.0.5
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
 
+  # --- Sprint 2: Drift codegen ---
+  # drift_dev: ^2.20.0
+  # build_runner: ^2.4.12
+
 flutter:
   uses-material-design: true
+
+  fonts:
+    - family: Fraunces
+      fonts:
+        - asset: assets/fonts/Fraunces-Regular.ttf
+        - asset: assets/fonts/Fraunces-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Fraunces-SemiBold.ttf
+          weight: 600
+    - family: Inter
+      fonts:
+        - asset: assets/fonts/Inter-Regular.ttf
+        - asset: assets/fonts/Inter-Medium.ttf
+          weight: 500
+        - asset: assets/fonts/Inter-SemiBold.ttf
+          weight: 600
+        - asset: assets/fonts/Inter-Bold.ttf
+          weight: 700
+    - family: JetBrainsMono
+      fonts:
+        - asset: assets/fonts/JetBrainsMono-Regular.ttf
+        - asset: assets/fonts/JetBrainsMono-Medium.ttf
+          weight: 500
