@@ -6,6 +6,7 @@ import '../../core/theme/app_typography.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../auth/auth_repository.dart';
+import '../pendataan/db_test_screen.dart';
 
 /// Placeholder sementara — HANYA untuk memverifikasi alur login/logout
 /// Sprint 1 berjalan end-to-end. Diganti dengan Home asli di Sprint 3.
@@ -43,6 +44,15 @@ class HomeScreenPlaceholder extends StatelessWidget {
               'Coba matikan internet / mode pesawat, lalu tutup dan buka lagi app ini — '
               'kamu seharusnya tetap sampai di layar ini, bukan diminta login ulang.',
               style: AppTypography.bodySm,
+            ),
+            const SizedBox(height: AppSpacing.md),
+            AppButton(
+              label: 'Buka Tes Database Lokal (Sprint 2)',
+              icon: Icons.storage_outlined,
+              variant: AppButtonVariant.secondary,
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute(builder: (_) => const DbTestScreen()),
+              ),
             ),
             const Spacer(),
             AppButton(
