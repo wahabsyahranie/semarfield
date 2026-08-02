@@ -57,3 +57,20 @@ class PendataanPhotos extends Table {
   DateTimeColumn get createdAt =>
       dateTime().withDefault(currentDateAndTime)();
 }
+
+/// Profil user — pola "single row": selalu id = 1, tidak pernah
+/// nambah baris baru, cuma di-upsert. Disimpan di database (bukan
+/// SharedPreferences) supaya konsisten punya syncStatus dan bisa
+/// didorong ke Firestore lewat mekanisme sync yang sama di Sprint 6.
+class UserProfiles extends Table {
+  IntColumn get id => integer()(); // selalu bernilai 1
+  TextColumn get displayName => text().nullable()();
+  TextColumn get phoneNumber => text().nullable()();
+  TextColumn get avatarLocalPath => text().nullable()();
+  // Nilai: 'pending' atau 'synced'
+  TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
+  DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();
+
+  @override
+  Set<Column> get primaryKey => {id};
+}

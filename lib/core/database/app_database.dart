@@ -5,6 +5,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import 'tables.dart';
 import 'daos/pendataan_dao.dart';
+import 'daos/user_profile_dao.dart';
 
 part 'app_database.g.dart';
 
@@ -18,14 +19,30 @@ LazyDatabase _openConnection() {
   });
 }
 
-@DriftDatabase(tables: [PendataanEntries, PendataanPhotos], daos: [PendataanDao])
+@DriftDatabase(
+  tables: [PendataanEntries, PendataanPhotos, UserProfiles],
+  daos: [PendataanDao, UserProfileDao],
+)
 class AppDatabase extends _$AppDatabase {
   AppDatabase() : super(_openConnection());
 
   // Naikkan angka ini + tulis migrasi di `migration` getter setiap kali
   // menambah/mengubah kolom tabel setelah app sudah dipakai di lapangan.
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
+
+  @override
+  MigrationStrategy get migration => MigrationStrategy(
+        onCreate: (m) => m.createAll(),
+        onUpgrade: (m, from, to) async {
+          // User yang sudah install versi Sprint 2-4 (schemaVersion 1)
+          // cuma perlu ditambah tabel UserProfiles — data pendataan
+          // yang sudah ada tidak boleh hilang/ter-reset.
+          if (from < 2) {
+            await m.createTable(userProfiles);
+          }
+        },
+      );
 }
 
 /// Satu instance database dipakai di seluruh app (bukan bikin baru

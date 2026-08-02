@@ -76,4 +76,17 @@ class PendataanRepository {
 
   Stream<List<PendataanPhoto>> watchPhotosForEntry(int entryId) =>
       _dao.watchPhotosForEntry(entryId);
+
+  // --- Dipakai Sync Engine (Sprint 6) ---
+
+  Future<List<PendataanEntry>> getPendingEntries() => _dao.getPendingEntries();
+
+  Future<List<PendataanPhoto>> getPhotosForEntry(int entryId) =>
+      _dao.getPhotosForEntry(entryId);
+
+  Future<void> markEntrySynced(int id, String firestoreId) =>
+      _dao.markAsSynced(id, firestoreId);
+
+  Future<void> updatePhotoUploadedUrl(int photoId, String url) =>
+      _dao.updatePhotoUploadedUrl(photoId, url);
 }

@@ -76,4 +76,12 @@ class PendataanDao extends DatabaseAccessor<AppDatabase> with _$PendataanDaoMixi
     return (select(pendataanPhotos)..where((t) => t.entryId.equals(entryId)))
         .get();
   }
+
+  /// Dipanggil sync engine (Sprint 6) setelah berhasil upload satu foto
+  /// ke Firebase Storage, supaya foto yang sama tidak diupload ulang
+  /// kalau sync diulang/gagal di tengah jalan.
+  Future<void> updatePhotoUploadedUrl(int photoId, String url) {
+    return (update(pendataanPhotos)..where((t) => t.id.equals(photoId)))
+        .write(PendataanPhotosCompanion(uploadedUrl: Value(url)));
+  }
 }

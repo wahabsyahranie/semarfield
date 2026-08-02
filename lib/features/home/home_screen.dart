@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../../core/database/app_database.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
@@ -9,6 +11,9 @@ import '../../core/widgets/app_card.dart';
 import '../../core/widgets/status_badge.dart';
 import '../pendataan/add_data_form_screen.dart';
 import '../pendataan/pendataan_repository.dart';
+import '../profile/profile_screen.dart';
+import '../../core/services/connectivity_service.dart';
+import '../../core/services/sync_service.dart';
 
 enum _StatusFilter { semua, pending, synced }
 
@@ -26,12 +31,38 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   final _repo = PendataanRepository();
   final _searchCtrl = TextEditingController();
+  final _connectivity = ConnectivityService();
+  final _syncService = SyncService();
+  StreamSubscription<bool>? _connectivitySub;
   _StatusFilter _filter = _StatusFilter.semua;
   String _query = '';
 
   @override
+  void initState() {
+    super.initState();
+    // Auto-sync diam-diam begitu HP kembali online — user tidak perlu
+    // buka Profile & tekan tombol manual tiap kali. Kalau gagal, cukup
+    // diabaikan; nanti dicoba lagi di perubahan konektivitas berikutnya
+    // atau saat user sync manual dari Profile.
+    _connectivitySub = _connectivity.onOnline.listen((isOnline) async {
+      if (!isOnline || !mounted) return;
+      try {
+        final result = await _syncService.syncAll();
+        if (result.entriesSynced > 0 && mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('${result.entriesSynced} data otomatis tersinkron.')),
+          );
+        }
+      } catch (_) {
+        // Diam-diam gagal — tidak mengganggu user, akan dicoba lagi nanti.
+      }
+    });
+  }
+
+  @override
   void dispose() {
     _searchCtrl.dispose();
+    _connectivitySub?.cancel();
     super.dispose();
   }
 
@@ -92,8 +123,8 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openProfilePlaceholder() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Halaman Profil dibangun di Sprint 5.')),
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (_) => const ProfileScreen()),
     );
   }
 
@@ -110,18 +141,19 @@ class _HomeScreenState extends State<HomeScreen> {
         ? user!.displayName![0].toUpperCase()
         : '?';
 
-    return Scaffold(
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light, // ikon jam/baterai jadi putih, kontras dgn hijau
+      child: Scaffold(
       backgroundColor: AppColors.parchment,
       floatingActionButton: FloatingActionButton(
         backgroundColor: AppColors.wine,
         onPressed: _openAddDataEntry,
         child: const Icon(Icons.add, color: Colors.white),
       ),
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildAppBar(context, initial, user),
-            Expanded(
+      body: Column(
+        children: [
+          _buildAppBar(context, initial, user),
+          Expanded(
               child: StreamBuilder<List<PendataanEntry>>(
                 stream: _repo.watchAllEntries(),
                 builder: (context, snapshot) {
@@ -198,17 +230,24 @@ class _HomeScreenState extends State<HomeScreen> {
         color: AppColors.forestDeep,
         borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
       ),
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.lg),
-      child: Column(
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      // SafeArea di sini (bukan di body Scaffold) supaya warna hijau
+      // tetap mengalir sampai ke belakang status bar, tapi konten
+      // (tombol, teks) tetap didorong turun secukupnya agar tidak
+      // ketiban status bar / notch.
+      child: SafeArea(
+        bottom: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.lg),
+          child: Column(
             children: [
-              const Text('Beranda',
-                  style: TextStyle(
-                    fontFamily: 'Fraunces',
-                    fontWeight: FontWeight.w600,
-                    fontSize: 19,
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text('Beranda',
+                      style: TextStyle(
+                        fontFamily: 'Fraunces',
+                        fontWeight: FontWeight.w600,
+                        fontSize: 19,
                     color: AppColors.parchment,
                   )),
               InkWell(
@@ -291,6 +330,8 @@ class _HomeScreenState extends State<HomeScreen> {
             ],
           ),
         ],
+      ),
+        ),
       ),
     );
   }
