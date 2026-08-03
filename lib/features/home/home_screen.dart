@@ -17,6 +17,7 @@ import '../profile/profile_repository.dart';
 import '../profile/profile_screen.dart';
 import '../../core/services/connectivity_service.dart';
 import '../../core/services/sync_service.dart';
+import '../../core/utils/snack.dart';
 
 enum _StatusFilter { semua, pending, synced }
 
@@ -58,9 +59,7 @@ class _HomeScreenState extends State<HomeScreen> {
       try {
         final result = await _syncService.syncAll();
         if (result.entriesSynced > 0 && mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('${result.entriesSynced} data otomatis tersinkron.')),
-          );
+          showSnack(context, '${result.entriesSynced} data otomatis tersinkron.');
         }
       } catch (_) {
         // Diam-diam gagal — tidak mengganggu user, akan dicoba lagi nanti.
@@ -167,8 +166,8 @@ class _HomeScreenState extends State<HomeScreen> {
                   final filtered = _applyFilter(all);
 
                   return ListView(
-                    padding: const EdgeInsets.fromLTRB(
-                        AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 100),
+                    padding: EdgeInsets.fromLTRB(
+                        AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 100 + MediaQuery.of(context).padding.bottom),
                     children: [
                       _buildStatRow(),
                       const SizedBox(height: AppSpacing.lg),

@@ -8,6 +8,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
+import '../../core/utils/snack.dart';
 import '../../core/widgets/app_button.dart';
 import '../../core/widgets/app_card.dart';
 import '../auth/auth_repository.dart';
@@ -96,6 +97,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _save() async {
+    if (_saving) return; // cegah tap berkali-kali numpuk beberapa proses simpan sekaligus
     setState(() => _saving = true);
     await _profileRepo.simpanProfile(
       displayName: _nameCtrl.text.trim().isEmpty ? null : _nameCtrl.text.trim(),
@@ -104,9 +106,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
     if (!mounted) return;
     setState(() => _saving = false);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Profil tersimpan offline.')),
-    );
+    showSnack(context, 'Profil tersimpan offline.');
   }
 
   Future<void> _handleSyncTap() async {
@@ -130,12 +130,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
     } on SyncFailure catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      showSnack(context, e.message);
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Sinkronisasi gagal. Coba lagi nanti.')),
-      );
+      showSnack(context, 'Sinkronisasi gagal. Coba lagi nanti.');
     } finally {
       if (mounted) setState(() => _syncing = false);
     }
@@ -164,9 +162,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     final count = await _pendataanRepo.hapusSemuaDataLokal();
     if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('$count data lokal dihapus dari HP ini.')),
-    );
+    showSnack(context, '$count data lokal dihapus dari HP ini.');
   }
 
   Future<void> _handleLogout() async {
@@ -376,6 +372,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   const SizedBox(height: AppSpacing.md),
                   AppButton(label: 'Keluar Akun', variant: AppButtonVariant.danger, onPressed: _handleLogout),
                   const SizedBox(height: AppSpacing.xl),
+
+                  // --- Tentang Aplikasi ---
+                  const Divider(),
+                  const SizedBox(height: AppSpacing.md),
+                  Text('SemarField', style: AppTypography.bodyMd.copyWith(fontWeight: FontWeight.w700, color: AppColors.forestDeep)),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Dikembangkan oleh Abdul Wahab S · 2026\n'
+                    'MERAPI POLNES — Mahasiswa Teknologi Informasi\n'
+                    'Pencinta Alam Indonesia, Politeknik Negeri Samarinda',
+                    style: AppTypography.bodySm,
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: AppSpacing.xl + MediaQuery.of(context).padding.bottom),
                 ],
               ),
             ),

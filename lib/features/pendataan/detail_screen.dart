@@ -6,7 +6,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
-import '../../core/widgets/app_button.dart';
+import '../../core/utils/snack.dart';
 import '../../core/widgets/status_badge.dart';
 import 'add_data_form_screen.dart';
 import 'pendataan_repository.dart';
@@ -67,9 +67,7 @@ class _DetailScreenState extends State<DetailScreen> {
     await _repo.hapusEntry(entry.id);
     if (!mounted) return;
     Navigator.of(context).pop(); // kembali ke Home
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Data dihapus dari HP ini.')),
-    );
+    showSnack(context, 'Data dihapus dari HP ini.');
   }
 
   Future<void> _handleDeleteCloud(PendataanEntry entry) async {
@@ -96,17 +94,13 @@ class _DetailScreenState extends State<DetailScreen> {
     try {
       await _syncService.deleteEntryFromCloud(entry);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Data berhasil dihapus dari Firebase.')),
-      );
+      showSnack(context, 'Data berhasil dihapus dari Firebase.');
     } on SyncFailure catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+      showSnack(context, e.message);
     } catch (_) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal menghapus dari Firebase. Coba lagi.')),
-      );
+      showSnack(context, 'Gagal menghapus dari Firebase. Coba lagi.');
     } finally {
       if (mounted) setState(() => _deletingCloud = false);
     }
@@ -331,33 +325,90 @@ class _DetailScreenState extends State<DetailScreen> {
   }
 
   Widget _buildActions(PendataanEntry entry) {
+    final isSynced = entry.syncStatus == 'synced' && entry.firestoreId != null;
+
     return Container(
-      padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.lg),
       decoration: const BoxDecoration(
         color: AppColors.parchment,
         border: Border(top: BorderSide(color: AppColors.lineSoft)),
       ),
-      child: Column(
-        children: [
-          AppButton(label: 'Edit Data Ini', icon: Icons.edit_outlined, onPressed: () => _handleEdit(entry)),
-          const SizedBox(height: AppSpacing.sm),
-          AppButton(
-            label: 'Hapus dari HP (Lokal)',
-            icon: Icons.delete_outline,
-            variant: AppButtonVariant.danger,
-            onPressed: () => _handleDeleteLocal(entry),
+      // SafeArea di sini (bukan di body Scaffold) — sebelumnya bar ini
+      // tertutup sebagian oleh navigasi gestur di HP dengan bottom
+      // inset besar, karena paddingnya cuma angka tetap, tidak
+      // menyesuaikan tinggi system nav bar device.
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.md),
+          child: Row(
+            children: [
+              _iconAction(
+                icon: Icons.edit_outlined,
+                tooltip: 'Edit Data',
+                bg: AppColors.forestDeep,
+                fg: AppColors.parchment,
+                onTap: () => _handleEdit(entry),
+              ),
+              const SizedBox(width: AppSpacing.sm),
+              _iconAction(
+                icon: Icons.delete_outline,
+                tooltip: 'Hapus dari HP (Lokal)',
+                bg: Colors.white,
+                fg: AppColors.redWarn,
+                border: AppColors.redWarn,
+                onTap: () => _handleDeleteLocal(entry),
+              ),
+              if (isSynced) ...[
+                const SizedBox(width: AppSpacing.sm),
+                _iconAction(
+                  icon: Icons.cloud_off_outlined,
+                  tooltip: 'Hapus dari Firebase Juga',
+                  bg: Colors.white,
+                  fg: AppColors.muted,
+                  border: AppColors.line,
+                  loading: _deletingCloud,
+                  onTap: () => _handleDeleteCloud(entry),
+                ),
+              ],
+            ],
           ),
-          if (entry.syncStatus == 'synced') ...[
-            const SizedBox(height: AppSpacing.sm),
-            AppButton(
-              label: 'Hapus dari Firebase Juga',
-              icon: Icons.cloud_off_outlined,
-              variant: AppButtonVariant.secondary,
-              loading: _deletingCloud,
-              onPressed: () => _handleDeleteCloud(entry),
+        ),
+      ),
+    );
+  }
+
+  /// Tombol aksi ikon-saja, isi lebar merata (Expanded). Tooltip
+  /// bawaan Flutter otomatis muncul saat ditekan-tahan (long press)
+  /// di mobile — jadi tetap ada penjelasan tanpa perlu teks permanen
+  /// yang memakan tempat.
+  Widget _iconAction({
+    required IconData icon,
+    required String tooltip,
+    required VoidCallback? onTap,
+    required Color bg,
+    required Color fg,
+    Color? border,
+    bool loading = false,
+  }) {
+    return Expanded(
+      child: Tooltip(
+        message: tooltip,
+        child: InkWell(
+          onTap: loading ? null : onTap,
+          borderRadius: AppRadius.mdR,
+          child: Container(
+            height: 52,
+            alignment: Alignment.center,
+            decoration: BoxDecoration(
+              color: bg,
+              borderRadius: AppRadius.mdR,
+              border: border != null ? Border.all(color: border, width: 1.5) : null,
             ),
-          ],
-        ],
+            child: loading
+                ? SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: fg))
+                : Icon(icon, color: fg, size: 22),
+          ),
+        ),
       ),
     );
   }

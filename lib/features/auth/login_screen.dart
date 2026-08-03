@@ -3,6 +3,7 @@ import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/widgets/app_button.dart';
+import '../../core/widgets/google_logo.dart';
 import 'auth_repository.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -46,18 +47,11 @@ class _LoginScreenState extends State<LoginScreen> {
       backgroundColor: AppColors.forestDeep,
       body: SafeArea(
         child: Padding(
-          padding: const EdgeInsets.symmetric(
-            horizontal: AppSpacing.xl,
-            vertical: AppSpacing.xxl,
-          ),
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.xl, vertical: AppSpacing.xxl),
           child: Column(
             children: [
               const Spacer(),
-              const Icon(
-                Icons.local_florist,
-                size: 64,
-                color: AppColors.parchment,
-              ),
+              const Icon(Icons.local_florist, size: 64, color: AppColors.parchment),
               const SizedBox(height: AppSpacing.lg),
               const Text(
                 'SemarField',
@@ -72,11 +66,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const Text(
                 'Alat bantu pendataan lapangan Nepenthes — tetap jalan tanpa sinyal, sinkron saat online.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: AppTypography.body,
-                  fontSize: 13,
-                  color: Color(0xFFDCE7D6),
-                ),
+                style: TextStyle(fontFamily: AppTypography.body, fontSize: 13, color: Color(0xFFDCE7D6)),
               ),
               const Spacer(),
 
@@ -89,11 +79,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 ),
                 child: const Text(
                   'Login hanya diperlukan sekali di awal. Setelah itu, buka & isi data kapan saja tanpa internet.',
-                  style: TextStyle(
-                    fontFamily: AppTypography.body,
-                    fontSize: 11.5,
-                    color: Color(0xFFE4EEDF),
-                  ),
+                  style: TextStyle(fontFamily: AppTypography.body, fontSize: 11.5, color: Color(0xFFE4EEDF)),
                 ),
               ),
               const SizedBox(height: AppSpacing.md),
@@ -108,11 +94,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                   child: Text(
                     _errorMessage!,
-                    style: const TextStyle(
-                      fontFamily: AppTypography.body,
-                      fontSize: 12,
-                      color: AppColors.redWarn,
-                    ),
+                    style: const TextStyle(fontFamily: AppTypography.body, fontSize: 12, color: AppColors.redWarn),
                   ),
                 ),
                 const SizedBox(height: AppSpacing.md),
@@ -120,8 +102,8 @@ class _LoginScreenState extends State<LoginScreen> {
 
               AppButton(
                 label: 'Masuk dengan Google',
-                icon: Icons.login,
-                variant: AppButtonVariant.google,
+                iconWidget: const GoogleLogo(size: 18),
+                variant: AppButtonVariant.secondary,
                 loading: _loading,
                 onPressed: _handleGoogleSignIn,
               ),
@@ -129,11 +111,7 @@ class _LoginScreenState extends State<LoginScreen> {
               const Text(
                 'Dengan masuk, akun kamu dipakai untuk menyimpan & menyinkronkan data pendataan secara aman.',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  fontFamily: AppTypography.body,
-                  fontSize: 10.5,
-                  color: Color(0xFFB9CBB2),
-                ),
+                style: TextStyle(fontFamily: AppTypography.body, fontSize: 10.5, color: Color(0xFFB9CBB2)),
               ),
             ],
           ),
