@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -10,7 +11,9 @@ import '../../core/theme/app_typography.dart';
 import '../../core/widgets/app_card.dart';
 import '../../core/widgets/status_badge.dart';
 import '../pendataan/add_data_form_screen.dart';
+import '../pendataan/detail_screen.dart';
 import '../pendataan/pendataan_repository.dart';
+import '../profile/profile_repository.dart';
 import '../profile/profile_screen.dart';
 import '../../core/services/connectivity_service.dart';
 import '../../core/services/sync_service.dart';
@@ -30,6 +33,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final _repo = PendataanRepository();
+  final _profileRepo = ProfileRepository();
   final _searchCtrl = TextEditingController();
   final _connectivity = ConnectivityService();
   final _syncService = SyncService();
@@ -40,6 +44,11 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    // Sekali di awal: kalau profil lokal masih kosong (HP baru / abis
+    // install ulang) tapi akun ini sudah pernah isi profil di HP lain,
+    // tarik dari Firestore supaya nama/HP/foto langsung muncul.
+    _syncService.pullProfileIfNeeded();
+
     // Auto-sync diam-diam begitu HP kembali online — user tidak perlu
     // buka Profile & tekan tombol manual tiap kali. Kalau gagal, cukup
     // diabaikan; nanti dicoba lagi di perubahan konektivitas berikutnya
@@ -137,9 +146,6 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     final user = FirebaseAuth.instance.currentUser;
-    final initial = (user?.displayName?.trim().isNotEmpty ?? false)
-        ? user!.displayName![0].toUpperCase()
-        : '?';
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light, // ikon jam/baterai jadi putih, kontras dgn hijau
@@ -152,7 +158,7 @@ class _HomeScreenState extends State<HomeScreen> {
       ),
       body: Column(
         children: [
-          _buildAppBar(context, initial, user),
+          _buildAppBar(context, user),
           Expanded(
               child: StreamBuilder<List<PendataanEntry>>(
                 stream: _repo.watchAllEntries(),
@@ -224,7 +230,7 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  Widget _buildAppBar(BuildContext context, String initial, User? user) {
+  Widget _buildAppBar(BuildContext context, User? user) {
     return Container(
       decoration: const BoxDecoration(
         color: AppColors.forestDeep,
@@ -253,28 +259,52 @@ class _HomeScreenState extends State<HomeScreen> {
               InkWell(
                 onTap: _openProfilePlaceholder,
                 borderRadius: AppRadius.pillR,
-                child: Container(
-                  padding: const EdgeInsets.fromLTRB(5, 5, 10, 5),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.08),
-                    borderRadius: AppRadius.pillR,
-                    border: Border.all(color: Colors.white.withOpacity(0.15)),
-                  ),
-                  child: Row(
-                    children: [
-                      CircleAvatar(
-                        radius: 14,
-                        backgroundColor: AppColors.wineSoft,
-                        child: Text(initial,
-                            style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700)),
+                child: StreamBuilder<UserProfile?>(
+                  stream: _profileRepo.watchProfile(),
+                  builder: (context, snapshot) {
+                    final profile = snapshot.data;
+                    final displayName = (profile?.displayName?.trim().isNotEmpty ?? false)
+                        ? profile!.displayName!
+                        : (user?.displayName ?? 'Pengguna');
+                    final firstName = displayName.split(' ').first;
+                    final initialChar = displayName.isNotEmpty ? displayName[0].toUpperCase() : '?';
+
+                    ImageProvider? avatarImage;
+                    if (profile?.avatarLocalPath != null) {
+                      avatarImage = FileImage(File(profile!.avatarLocalPath!));
+                    } else if (profile?.avatarRemoteUrl != null) {
+                      avatarImage = NetworkImage(profile!.avatarRemoteUrl!);
+                    } else if (user?.photoURL != null) {
+                      avatarImage = NetworkImage(user!.photoURL!);
+                    }
+
+                    return Container(
+                      padding: const EdgeInsets.fromLTRB(5, 5, 10, 5),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.08),
+                        borderRadius: AppRadius.pillR,
+                        border: Border.all(color: Colors.white.withOpacity(0.15)),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        user?.displayName?.split(' ').first ?? 'Pengguna',
-                        style: const TextStyle(color: AppColors.parchment, fontSize: 11.5, fontWeight: FontWeight.w600),
+                      child: Row(
+                        children: [
+                          CircleAvatar(
+                            radius: 14,
+                            backgroundColor: AppColors.wineSoft,
+                            backgroundImage: avatarImage,
+                            child: avatarImage == null
+                                ? Text(initialChar,
+                                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700))
+                                : null,
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            firstName,
+                            style: const TextStyle(color: AppColors.parchment, fontSize: 11.5, fontWeight: FontWeight.w600),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ),
             ],
@@ -302,6 +332,9 @@ class _HomeScreenState extends State<HomeScreen> {
                           decoration: const InputDecoration(
                             isDense: true,
                             border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
+                            disabledBorder: InputBorder.none,
                             filled: false,
                             hintText: 'Cari spesies, titik…',
                             hintStyle: TextStyle(color: Color(0xFFA9BEA3), fontSize: 12.5),
@@ -377,6 +410,11 @@ class _EntryCard extends StatelessWidget {
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: AppCard(
+        onTap: () {
+          Navigator.of(context).push(
+            MaterialPageRoute(builder: (_) => DetailScreen(entry: entry)),
+          );
+        },
         child: Row(
           children: [
             Container(

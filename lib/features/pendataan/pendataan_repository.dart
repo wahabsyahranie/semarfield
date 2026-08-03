@@ -16,6 +16,8 @@ class PendataanRepository {
 
   Stream<int> watchSyncedCount() => _dao.watchCountByStatus('synced');
 
+  Stream<PendataanEntry?> watchEntryById(int id) => _dao.watchEntryById(id);
+
   Future<int> tambahEntry({
     required String titikPengamatan,
     required DateTime tanggalPengamatan,
@@ -62,6 +64,66 @@ class PendataanRepository {
 
   Future<void> hapusEntry(int id) => _dao.deleteEntry(id);
 
+  /// Update entri yang sudah ada (mode edit). Sengaja reset
+  /// syncStatus jadi 'pending' lagi — kalau entri ini sudah pernah
+  /// tersinkron sebelumnya, perubahan ini perlu naik ulang ke
+  /// Firestore. firestoreId TETAP dipertahankan supaya SyncService
+  /// nanti overwrite dokumen yang sama, bukan bikin duplikat.
+  Future<void> perbaruiEntry({
+    required int id,
+    required String titikPengamatan,
+    required DateTime tanggalPengamatan,
+    double? latitude,
+    double? longitude,
+    double? gpsAccuracyMeter,
+    bool koordinatBelumLengkap = false,
+    double? ketinggianMdpl,
+    String? spesies,
+    double? panjangKantongCm,
+    double? diameterKantongCm,
+    double? tinggiTanamanCm,
+    double? panjangDaunCm,
+    String? warnaKantong,
+    int? jumlahIndividu,
+    double? phTanah,
+    double? kelembapanTanahPersen,
+    double? kelembapanUdaraPersen,
+    double? suhuUdaraCelsius,
+    String? deskripsiHabitat,
+  }) {
+    return _dao.updateEntry(PendataanEntriesCompanion(
+      id: Value(id),
+      titikPengamatan: Value(titikPengamatan),
+      tanggalPengamatan: Value(tanggalPengamatan),
+      latitude: Value(latitude),
+      longitude: Value(longitude),
+      gpsAccuracyMeter: Value(gpsAccuracyMeter),
+      koordinatBelumLengkap: Value(koordinatBelumLengkap),
+      ketinggianMdpl: Value(ketinggianMdpl),
+      spesies: Value(spesies),
+      panjangKantongCm: Value(panjangKantongCm),
+      diameterKantongCm: Value(diameterKantongCm),
+      tinggiTanamanCm: Value(tinggiTanamanCm),
+      panjangDaunCm: Value(panjangDaunCm),
+      warnaKantong: Value(warnaKantong),
+      jumlahIndividu: Value(jumlahIndividu),
+      phTanah: Value(phTanah),
+      kelembapanTanahPersen: Value(kelembapanTanahPersen),
+      kelembapanUdaraPersen: Value(kelembapanUdaraPersen),
+      suhuUdaraCelsius: Value(suhuUdaraCelsius),
+      deskripsiHabitat: Value(deskripsiHabitat),
+      syncStatus: const Value('pending'),
+    ));
+  }
+
+  Future<void> hapusFoto(int photoId) => _dao.deletePhoto(photoId);
+
+  Future<void> markEntryPending(int id) => _dao.markAsPending(id);
+
+  /// Dipakai setelah entri dihapus dari Firebase — beda dari
+  /// markEntryPending karena firestoreId juga dikosongkan.
+  Future<void> resetSyncStatus(int id) => _dao.resetSyncStatus(id);
+
   Future<int> tambahFoto({
     required int entryId,
     required String localPath,
@@ -80,6 +142,11 @@ class PendataanRepository {
   // --- Dipakai Sync Engine (Sprint 6) ---
 
   Future<List<PendataanEntry>> getPendingEntries() => _dao.getPendingEntries();
+
+  Future<PendataanEntry?> getLatestEntryForTitik(String titik) =>
+      _dao.getLatestEntryForTitik(titik);
+
+  Future<int> hapusSemuaDataLokal() => _dao.deleteAllEntries();
 
   Future<List<PendataanPhoto>> getPhotosForEntry(int entryId) =>
       _dao.getPhotosForEntry(entryId);

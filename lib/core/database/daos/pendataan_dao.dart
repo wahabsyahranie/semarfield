@@ -18,6 +18,14 @@ class PendataanDao extends DatabaseAccessor<AppDatabase> with _$PendataanDaoMixi
         .watch();
   }
 
+  /// Satu entri, reaktif — dipakai DetailScreen supaya otomatis
+  /// ter-update begitu entri diedit, disinkronkan, atau dihapus,
+  /// tanpa perlu Navigator.pop lalu buka lagi.
+  Stream<PendataanEntry?> watchEntryById(int id) {
+    return (select(pendataanEntries)..where((t) => t.id.equals(id)))
+        .watchSingleOrNull();
+  }
+
   Stream<int> watchTotalCount() {
     final count = pendataanEntries.id.count();
     final query = selectOnly(pendataanEntries)..addColumns([count]);
@@ -49,17 +57,50 @@ class PendataanDao extends DatabaseAccessor<AppDatabase> with _$PendataanDaoMixi
     );
   }
 
+  /// Dipakai saat entri diedit (perlu di-sync ulang, firestoreId
+  /// dipertahankan supaya overwrite dokumen yang sama).
+  Future<void> markAsPending(int id) {
+    return (update(pendataanEntries)..where((t) => t.id.equals(id)))
+        .write(const PendataanEntriesCompanion(syncStatus: Value('pending')));
+  }
+
+  /// Dipanggil setelah entri berhasil dihapus dari Firebase (baris
+  /// lokalnya sengaja tetap ada) — beda dari markAsPending karena
+  /// firestoreId juga dikosongkan, supaya kalau di-sync lagi nanti
+  /// dianggap dokumen baru, bukan overwrite dokumen yang sudah dihapus.
+  Future<void> resetSyncStatus(int id) {
+    return (update(pendataanEntries)..where((t) => t.id.equals(id))).write(
+      const PendataanEntriesCompanion(
+        syncStatus: Value('pending'),
+        firestoreId: Value(null),
+      ),
+    );
+  }
+
   Future<int> deleteEntry(int id) {
     return (delete(pendataanEntries)..where((t) => t.id.equals(id))).go();
   }
 
-  /// Semua entry yang masih 'pending' — dipakai Sprint 6 untuk tahu
+  /// Semua entry yang masih 'pending' — dipakai Sync Engine untuk tahu
   /// apa saja yang perlu di-push ke Firestore.
   Future<List<PendataanEntry>> getPendingEntries() {
     return (select(pendataanEntries)
           ..where((t) => t.syncStatus.equals('pending')))
         .get();
   }
+
+  /// Entri terbaru di titik pengamatan yang sama — dipakai form untuk
+  /// menawarkan "salin kondisi habitat" supaya user tidak isi ulang
+  /// pH/kelembapan/suhu/deskripsi kalau masih di titik yang sama.
+  Future<PendataanEntry?> getLatestEntryForTitik(String titik) {
+    return (select(pendataanEntries)
+          ..where((t) => t.titikPengamatan.equals(titik))
+          ..orderBy([(t) => OrderingTerm.desc(t.createdAt)])
+          ..limit(1))
+        .getSingleOrNull();
+  }
+
+  Future<int> deleteAllEntries() => delete(pendataanEntries).go();
 
   // --- Photos ---
 
@@ -77,11 +118,15 @@ class PendataanDao extends DatabaseAccessor<AppDatabase> with _$PendataanDaoMixi
         .get();
   }
 
-  /// Dipanggil sync engine (Sprint 6) setelah berhasil upload satu foto
-  /// ke Firebase Storage, supaya foto yang sama tidak diupload ulang
+  /// Dipanggil sync engine setelah berhasil upload satu foto ke
+  /// Firebase Storage, supaya foto yang sama tidak diupload ulang
   /// kalau sync diulang/gagal di tengah jalan.
   Future<void> updatePhotoUploadedUrl(int photoId, String url) {
     return (update(pendataanPhotos)..where((t) => t.id.equals(photoId)))
         .write(PendataanPhotosCompanion(uploadedUrl: Value(url)));
+  }
+
+  Future<int> deletePhoto(int photoId) {
+    return (delete(pendataanPhotos)..where((t) => t.id.equals(photoId))).go();
   }
 }

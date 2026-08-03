@@ -1872,6 +1872,17 @@ class $UserProfilesTable extends UserProfiles
     type: DriftSqlType.string,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _avatarRemoteUrlMeta = const VerificationMeta(
+    'avatarRemoteUrl',
+  );
+  @override
+  late final GeneratedColumn<String> avatarRemoteUrl = GeneratedColumn<String>(
+    'avatar_remote_url',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _syncStatusMeta = const VerificationMeta(
     'syncStatus',
   );
@@ -1902,6 +1913,7 @@ class $UserProfilesTable extends UserProfiles
     displayName,
     phoneNumber,
     avatarLocalPath,
+    avatarRemoteUrl,
     syncStatus,
     updatedAt,
   ];
@@ -1947,6 +1959,15 @@ class $UserProfilesTable extends UserProfiles
         ),
       );
     }
+    if (data.containsKey('avatar_remote_url')) {
+      context.handle(
+        _avatarRemoteUrlMeta,
+        avatarRemoteUrl.isAcceptableOrUnknown(
+          data['avatar_remote_url']!,
+          _avatarRemoteUrlMeta,
+        ),
+      );
+    }
     if (data.containsKey('sync_status')) {
       context.handle(
         _syncStatusMeta,
@@ -1984,6 +2005,10 @@ class $UserProfilesTable extends UserProfiles
         DriftSqlType.string,
         data['${effectivePrefix}avatar_local_path'],
       ),
+      avatarRemoteUrl: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}avatar_remote_url'],
+      ),
       syncStatus: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}sync_status'],
@@ -2006,6 +2031,7 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
   final String? displayName;
   final String? phoneNumber;
   final String? avatarLocalPath;
+  final String? avatarRemoteUrl;
   final String syncStatus;
   final DateTime updatedAt;
   const UserProfile({
@@ -2013,6 +2039,7 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
     this.displayName,
     this.phoneNumber,
     this.avatarLocalPath,
+    this.avatarRemoteUrl,
     required this.syncStatus,
     required this.updatedAt,
   });
@@ -2028,6 +2055,9 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
     }
     if (!nullToAbsent || avatarLocalPath != null) {
       map['avatar_local_path'] = Variable<String>(avatarLocalPath);
+    }
+    if (!nullToAbsent || avatarRemoteUrl != null) {
+      map['avatar_remote_url'] = Variable<String>(avatarRemoteUrl);
     }
     map['sync_status'] = Variable<String>(syncStatus);
     map['updated_at'] = Variable<DateTime>(updatedAt);
@@ -2046,6 +2076,9 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
       avatarLocalPath: avatarLocalPath == null && nullToAbsent
           ? const Value.absent()
           : Value(avatarLocalPath),
+      avatarRemoteUrl: avatarRemoteUrl == null && nullToAbsent
+          ? const Value.absent()
+          : Value(avatarRemoteUrl),
       syncStatus: Value(syncStatus),
       updatedAt: Value(updatedAt),
     );
@@ -2061,6 +2094,7 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
       displayName: serializer.fromJson<String?>(json['displayName']),
       phoneNumber: serializer.fromJson<String?>(json['phoneNumber']),
       avatarLocalPath: serializer.fromJson<String?>(json['avatarLocalPath']),
+      avatarRemoteUrl: serializer.fromJson<String?>(json['avatarRemoteUrl']),
       syncStatus: serializer.fromJson<String>(json['syncStatus']),
       updatedAt: serializer.fromJson<DateTime>(json['updatedAt']),
     );
@@ -2073,6 +2107,7 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
       'displayName': serializer.toJson<String?>(displayName),
       'phoneNumber': serializer.toJson<String?>(phoneNumber),
       'avatarLocalPath': serializer.toJson<String?>(avatarLocalPath),
+      'avatarRemoteUrl': serializer.toJson<String?>(avatarRemoteUrl),
       'syncStatus': serializer.toJson<String>(syncStatus),
       'updatedAt': serializer.toJson<DateTime>(updatedAt),
     };
@@ -2083,6 +2118,7 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
     Value<String?> displayName = const Value.absent(),
     Value<String?> phoneNumber = const Value.absent(),
     Value<String?> avatarLocalPath = const Value.absent(),
+    Value<String?> avatarRemoteUrl = const Value.absent(),
     String? syncStatus,
     DateTime? updatedAt,
   }) => UserProfile(
@@ -2092,6 +2128,9 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
     avatarLocalPath: avatarLocalPath.present
         ? avatarLocalPath.value
         : this.avatarLocalPath,
+    avatarRemoteUrl: avatarRemoteUrl.present
+        ? avatarRemoteUrl.value
+        : this.avatarRemoteUrl,
     syncStatus: syncStatus ?? this.syncStatus,
     updatedAt: updatedAt ?? this.updatedAt,
   );
@@ -2107,6 +2146,9 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
       avatarLocalPath: data.avatarLocalPath.present
           ? data.avatarLocalPath.value
           : this.avatarLocalPath,
+      avatarRemoteUrl: data.avatarRemoteUrl.present
+          ? data.avatarRemoteUrl.value
+          : this.avatarRemoteUrl,
       syncStatus: data.syncStatus.present
           ? data.syncStatus.value
           : this.syncStatus,
@@ -2121,6 +2163,7 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
           ..write('displayName: $displayName, ')
           ..write('phoneNumber: $phoneNumber, ')
           ..write('avatarLocalPath: $avatarLocalPath, ')
+          ..write('avatarRemoteUrl: $avatarRemoteUrl, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -2133,6 +2176,7 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
     displayName,
     phoneNumber,
     avatarLocalPath,
+    avatarRemoteUrl,
     syncStatus,
     updatedAt,
   );
@@ -2144,6 +2188,7 @@ class UserProfile extends DataClass implements Insertable<UserProfile> {
           other.displayName == this.displayName &&
           other.phoneNumber == this.phoneNumber &&
           other.avatarLocalPath == this.avatarLocalPath &&
+          other.avatarRemoteUrl == this.avatarRemoteUrl &&
           other.syncStatus == this.syncStatus &&
           other.updatedAt == this.updatedAt);
 }
@@ -2153,6 +2198,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
   final Value<String?> displayName;
   final Value<String?> phoneNumber;
   final Value<String?> avatarLocalPath;
+  final Value<String?> avatarRemoteUrl;
   final Value<String> syncStatus;
   final Value<DateTime> updatedAt;
   const UserProfilesCompanion({
@@ -2160,6 +2206,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
     this.displayName = const Value.absent(),
     this.phoneNumber = const Value.absent(),
     this.avatarLocalPath = const Value.absent(),
+    this.avatarRemoteUrl = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -2168,6 +2215,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
     this.displayName = const Value.absent(),
     this.phoneNumber = const Value.absent(),
     this.avatarLocalPath = const Value.absent(),
+    this.avatarRemoteUrl = const Value.absent(),
     this.syncStatus = const Value.absent(),
     this.updatedAt = const Value.absent(),
   });
@@ -2176,6 +2224,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
     Expression<String>? displayName,
     Expression<String>? phoneNumber,
     Expression<String>? avatarLocalPath,
+    Expression<String>? avatarRemoteUrl,
     Expression<String>? syncStatus,
     Expression<DateTime>? updatedAt,
   }) {
@@ -2184,6 +2233,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
       if (displayName != null) 'display_name': displayName,
       if (phoneNumber != null) 'phone_number': phoneNumber,
       if (avatarLocalPath != null) 'avatar_local_path': avatarLocalPath,
+      if (avatarRemoteUrl != null) 'avatar_remote_url': avatarRemoteUrl,
       if (syncStatus != null) 'sync_status': syncStatus,
       if (updatedAt != null) 'updated_at': updatedAt,
     });
@@ -2194,6 +2244,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
     Value<String?>? displayName,
     Value<String?>? phoneNumber,
     Value<String?>? avatarLocalPath,
+    Value<String?>? avatarRemoteUrl,
     Value<String>? syncStatus,
     Value<DateTime>? updatedAt,
   }) {
@@ -2202,6 +2253,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
       displayName: displayName ?? this.displayName,
       phoneNumber: phoneNumber ?? this.phoneNumber,
       avatarLocalPath: avatarLocalPath ?? this.avatarLocalPath,
+      avatarRemoteUrl: avatarRemoteUrl ?? this.avatarRemoteUrl,
       syncStatus: syncStatus ?? this.syncStatus,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -2222,6 +2274,9 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
     if (avatarLocalPath.present) {
       map['avatar_local_path'] = Variable<String>(avatarLocalPath.value);
     }
+    if (avatarRemoteUrl.present) {
+      map['avatar_remote_url'] = Variable<String>(avatarRemoteUrl.value);
+    }
     if (syncStatus.present) {
       map['sync_status'] = Variable<String>(syncStatus.value);
     }
@@ -2238,6 +2293,7 @@ class UserProfilesCompanion extends UpdateCompanion<UserProfile> {
           ..write('displayName: $displayName, ')
           ..write('phoneNumber: $phoneNumber, ')
           ..write('avatarLocalPath: $avatarLocalPath, ')
+          ..write('avatarRemoteUrl: $avatarRemoteUrl, ')
           ..write('syncStatus: $syncStatus, ')
           ..write('updatedAt: $updatedAt')
           ..write(')'))
@@ -3336,6 +3392,7 @@ typedef $$UserProfilesTableCreateCompanionBuilder =
       Value<String?> displayName,
       Value<String?> phoneNumber,
       Value<String?> avatarLocalPath,
+      Value<String?> avatarRemoteUrl,
       Value<String> syncStatus,
       Value<DateTime> updatedAt,
     });
@@ -3345,6 +3402,7 @@ typedef $$UserProfilesTableUpdateCompanionBuilder =
       Value<String?> displayName,
       Value<String?> phoneNumber,
       Value<String?> avatarLocalPath,
+      Value<String?> avatarRemoteUrl,
       Value<String> syncStatus,
       Value<DateTime> updatedAt,
     });
@@ -3375,6 +3433,11 @@ class $$UserProfilesTableFilterComposer
 
   ColumnFilters<String> get avatarLocalPath => $composableBuilder(
     column: $table.avatarLocalPath,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get avatarRemoteUrl => $composableBuilder(
+    column: $table.avatarRemoteUrl,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -3418,6 +3481,11 @@ class $$UserProfilesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get avatarRemoteUrl => $composableBuilder(
+    column: $table.avatarRemoteUrl,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get syncStatus => $composableBuilder(
     column: $table.syncStatus,
     builder: (column) => ColumnOrderings(column),
@@ -3453,6 +3521,11 @@ class $$UserProfilesTableAnnotationComposer
 
   GeneratedColumn<String> get avatarLocalPath => $composableBuilder(
     column: $table.avatarLocalPath,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<String> get avatarRemoteUrl => $composableBuilder(
+    column: $table.avatarRemoteUrl,
     builder: (column) => column,
   );
 
@@ -3500,6 +3573,7 @@ class $$UserProfilesTableTableManager
                 Value<String?> displayName = const Value.absent(),
                 Value<String?> phoneNumber = const Value.absent(),
                 Value<String?> avatarLocalPath = const Value.absent(),
+                Value<String?> avatarRemoteUrl = const Value.absent(),
                 Value<String> syncStatus = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => UserProfilesCompanion(
@@ -3507,6 +3581,7 @@ class $$UserProfilesTableTableManager
                 displayName: displayName,
                 phoneNumber: phoneNumber,
                 avatarLocalPath: avatarLocalPath,
+                avatarRemoteUrl: avatarRemoteUrl,
                 syncStatus: syncStatus,
                 updatedAt: updatedAt,
               ),
@@ -3516,6 +3591,7 @@ class $$UserProfilesTableTableManager
                 Value<String?> displayName = const Value.absent(),
                 Value<String?> phoneNumber = const Value.absent(),
                 Value<String?> avatarLocalPath = const Value.absent(),
+                Value<String?> avatarRemoteUrl = const Value.absent(),
                 Value<String> syncStatus = const Value.absent(),
                 Value<DateTime> updatedAt = const Value.absent(),
               }) => UserProfilesCompanion.insert(
@@ -3523,6 +3599,7 @@ class $$UserProfilesTableTableManager
                 displayName: displayName,
                 phoneNumber: phoneNumber,
                 avatarLocalPath: avatarLocalPath,
+                avatarRemoteUrl: avatarRemoteUrl,
                 syncStatus: syncStatus,
                 updatedAt: updatedAt,
               ),

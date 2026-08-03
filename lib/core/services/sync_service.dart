@@ -145,4 +145,75 @@ class SyncService {
     await _profileRepo.markProfileSynced();
     return true;
   }
+
+  /// Tarik profil DARI Firestore ke lokal — dipanggil sekali saat Home
+  /// pertama kali dibuka setelah login. HANYA jalan kalau profil lokal
+  /// masih benar-benar kosong (belum pernah diisi apa pun di HP ini),
+  /// supaya tidak menimpa perubahan yang sedang diketik/tersimpan user
+  /// di HP ini dengan data lama dari cloud. Inilah yang membuat pindah
+  /// HP dengan akun yang sama tetap menampilkan nama/HP/foto lama.
+  Future<void> pullProfileIfNeeded() async {
+    final local = await _profileRepo.getProfileOnce();
+    final alreadyHasLocalData = local != null &&
+        (local.displayName != null || local.phoneNumber != null || local.avatarLocalPath != null);
+    if (alreadyHasLocalData) return;
+
+    final online = await _connectivity.isOnline();
+    if (!online) return; // diam-diam gagal, dicoba lagi di sesi berikutnya
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) return;
+
+    try {
+      final doc = await _firestore.collection('users').doc(uid).get();
+      if (!doc.exists) return;
+      final data = doc.data()!;
+      await _profileRepo.simpanProfileDariCloud(
+        displayName: data['displayName'] as String?,
+        phoneNumber: data['phoneNumber'] as String?,
+        avatarRemoteUrl: data['avatarUrl'] as String?,
+      );
+    } catch (_) {
+      // Diam-diam gagal — bukan aksi yang diminta user secara eksplisit,
+      // jadi tidak perlu tampilkan error yang mengganggu.
+    }
+  }
+
+  /// Hapus SATU entri dari Firestore + semua fotonya dari Storage.
+  /// Ini terpisah sengaja dari hapus lokal (PendataanRepository.hapusEntry)
+  /// — supaya "hapus dari HP" dan "hapus dari Firebase" adalah dua aksi
+  /// yang jelas berbeda, tidak tercampur jadi satu tombol.
+  Future<void> deleteEntryFromCloud(PendataanEntry entry) async {
+    if (entry.firestoreId == null) {
+      throw SyncFailure('Data ini belum pernah disinkronkan, tidak ada yang perlu dihapus di Firebase.');
+    }
+    final online = await _connectivity.isOnline();
+    if (!online) {
+      throw SyncFailure('Tidak ada koneksi internet.');
+    }
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) throw SyncFailure('Sesi login tidak ditemukan.');
+
+    // Hapus folder foto di Storage dulu, baru dokumennya di Firestore.
+    try {
+      final folderRef = _storage.ref('users/$uid/pendataan/${entry.id}');
+      final listResult = await folderRef.listAll();
+      for (final item in listResult.items) {
+        await item.delete();
+      }
+    } catch (_) {
+      // Kalau foto sudah tidak ada / folder kosong, abaikan — yang
+      // penting dokumen Firestore-nya tetap dihapus di bawah ini.
+    }
+
+    await _firestore
+        .collection('users').doc(uid)
+        .collection('pendataan').doc(entry.firestoreId)
+        .delete();
+
+    // Dokumen cloud-nya sudah hilang — status lokal wajib balik ke
+    // 'pending' supaya UI tidak salah bilang "Tersinkron" untuk data
+    // yang sebenarnya sudah tidak ada copy-nya di server.
+    await _pendataanRepo.markEntryPending(entry.id);
+  }
 }

@@ -32,6 +32,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
   String? _avatarPath;
+  String? _avatarRemoteUrl;
   bool _loading = true;
   bool _saving = false;
 
@@ -48,6 +49,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     _nameCtrl.text = profile?.displayName ?? googleUser?.displayName ?? '';
     _phoneCtrl.text = profile?.phoneNumber ?? '';
     _avatarPath = profile?.avatarLocalPath;
+    _avatarRemoteUrl = profile?.avatarRemoteUrl;
 
     if (mounted) setState(() => _loading = false);
   }
@@ -139,6 +141,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
+  Future<void> _handleClearLocalData() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hapus Semua Data Lokal?'),
+        content: const Text(
+          'Ini menghapus SEMUA data pendataan yang tersimpan di HP ini, termasuk foto lokalnya. '
+          'Data yang SUDAH tersinkron ke Firebase TIDAK ikut terhapus di server — hanya salinan di HP ini yang dibersihkan.\n\n'
+          'Data yang belum sempat disinkronkan akan hilang permanen. Pastikan sudah sync dulu kalau ragu.',
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Hapus', style: TextStyle(color: AppColors.redWarn)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    final count = await _pendataanRepo.hapusSemuaDataLokal();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('$count data lokal dihapus dari HP ini.')),
+    );
+  }
+
   Future<void> _handleLogout() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -205,19 +235,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     Stack(
                       children: [
-                        CircleAvatar(
-                          radius: 40,
-                          backgroundColor: AppColors.wineSoft,
-                          backgroundImage: _avatarPath != null
+                        Builder(builder: (context) {
+                          final ImageProvider? img = _avatarPath != null
                               ? FileImage(File(_avatarPath!))
-                              : (googleUser?.photoURL != null ? NetworkImage(googleUser!.photoURL!) : null) as ImageProvider?,
-                          child: (_avatarPath == null && googleUser?.photoURL == null)
-                              ? Text(
-                                  _nameCtrl.text.isNotEmpty ? _nameCtrl.text[0].toUpperCase() : '?',
-                                  style: const TextStyle(color: Colors.white, fontSize: 26, fontFamily: 'Fraunces', fontWeight: FontWeight.w600),
-                                )
-                              : null,
-                        ),
+                              : (_avatarRemoteUrl != null
+                                  ? NetworkImage(_avatarRemoteUrl!)
+                                  : (googleUser?.photoURL != null ? NetworkImage(googleUser!.photoURL!) : null)) as ImageProvider?;
+                          return CircleAvatar(
+                            radius: 40,
+                            backgroundColor: AppColors.wineSoft,
+                            backgroundImage: img,
+                            child: img == null
+                                ? Text(
+                                    _nameCtrl.text.isNotEmpty ? _nameCtrl.text[0].toUpperCase() : '?',
+                                    style: const TextStyle(color: Colors.white, fontSize: 26, fontFamily: 'Fraunces', fontWeight: FontWeight.w600),
+                                  )
+                                : null,
+                          );
+                        }),
                         Positioned(
                           bottom: 0, right: 0,
                           child: InkWell(
@@ -321,6 +356,23 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: AppSpacing.md),
                   AppButton(label: 'Simpan Perubahan', icon: Icons.check, loading: _saving, onPressed: _save),
+                  const SizedBox(height: AppSpacing.xl),
+
+                  // --- Zona berbahaya ---
+                  Text('ZONA LAINNYA', style: AppTypography.bodySm.copyWith(fontWeight: FontWeight.w700, letterSpacing: 0.4)),
+                  const SizedBox(height: AppSpacing.sm),
+                  AppButton(
+                    label: 'Hapus Semua Data Lokal',
+                    icon: Icons.delete_sweep_outlined,
+                    variant: AppButtonVariant.secondary,
+                    onPressed: _handleClearLocalData,
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Membersihkan data di HP ini saja — data yang sudah tersinkron tetap aman di Firebase.',
+                    style: AppTypography.bodySm,
+                    textAlign: TextAlign.center,
+                  ),
                   const SizedBox(height: AppSpacing.md),
                   AppButton(label: 'Keluar Akun', variant: AppButtonVariant.danger, onPressed: _handleLogout),
                   const SizedBox(height: AppSpacing.xl),

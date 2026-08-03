@@ -67,6 +67,10 @@ class UserProfiles extends Table {
   TextColumn get displayName => text().nullable()();
   TextColumn get phoneNumber => text().nullable()();
   TextColumn get avatarLocalPath => text().nullable()();
+  // URL foto dari Firebase Storage — dipakai saat HP ini belum punya
+  // file fotonya sendiri (misal baru login di HP baru), fallback
+  // sebelum avatarLocalPath ada.
+  TextColumn get avatarRemoteUrl => text().nullable()();
   // Nilai: 'pending' atau 'synced'
   TextColumn get syncStatus => text().withDefault(const Constant('pending'))();
   DateTimeColumn get updatedAt => dateTime().withDefault(currentDateAndTime)();

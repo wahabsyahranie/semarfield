@@ -29,7 +29,7 @@ class AppDatabase extends _$AppDatabase {
   // Naikkan angka ini + tulis migrasi di `migration` getter setiap kali
   // menambah/mengubah kolom tabel setelah app sudah dipakai di lapangan.
   @override
-  int get schemaVersion => 2;
+  int get schemaVersion => 3;
 
   @override
   MigrationStrategy get migration => MigrationStrategy(
@@ -40,6 +40,9 @@ class AppDatabase extends _$AppDatabase {
           // yang sudah ada tidak boleh hilang/ter-reset.
           if (from < 2) {
             await m.createTable(userProfiles);
+          }
+          if (from < 3) {
+            await m.addColumn(userProfiles, userProfiles.avatarRemoteUrl);
           }
         },
       );
