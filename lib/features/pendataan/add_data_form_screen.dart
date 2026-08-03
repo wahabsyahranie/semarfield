@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
+import 'package:semarfield/core/utils/snack.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/photo_storage_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -179,9 +180,7 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
       if (s.deskripsiHabitat != null) _deskripsiCtrl.text = s.deskripsiHabitat!;
       _habitatSuggestion = null;
     });
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Kondisi habitat disalin. Boleh dikoreksi kalau ada yang beda.')),
-    );
+    showSnack(context, 'Kondisi habitat disalin. Boleh dikoreksi kalau ada yang beda.');
   }
 
   @override
@@ -220,13 +219,16 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
 
     _gpsSub = _locationService.watchPosition().listen(
       (pos) {
-        final autoFilledMdpl = _mdplCtrl.text.trim().isEmpty && pos.altitude != 0;
         setState(() {
           _position = pos;
           _gpsAcquiring = false; // bacaan pertama sudah masuk, tapi terus diperbarui
-          if (autoFilledMdpl) {
-            _mdplCtrl.text = pos.altitude.round().toString();
-          }
+          // Ketinggian SENGAJA tidak diisi di sini tiap tick — akurasi
+          // vertikal (altitude) memang ikut membaik selama GPS masih
+          // mencari sinyal, sama seperti akurasi horizontal, tapi kalau
+          // field ini ditimpa terus-menerus, user jadi tidak bisa ketik
+          // manual sambil menunggu. Ketinggian baru diisi otomatis sekali,
+          // dari bacaan PALING AKHIR (paling akurat), tepat saat user
+          // menekan "Gunakan Ini" — lihat _useGpsNow().
         });
       },
       onError: (e) {
@@ -252,10 +254,17 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
   void _useGpsNow() {
     _gpsSub?.cancel();
     _gpsSub = null;
-    setState(() => _gpsLocked = true);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Koordinat dikunci di akurasi saat ini.')),
-    );
+    setState(() {
+      _gpsLocked = true;
+      // Isi ketinggian OTOMATIS di sini, dari bacaan GPS paling akhir
+      // (paling akurat) — tapi cuma kalau field masih kosong, supaya
+      // tidak menimpa angka yang sudah diketik manual user (misal dari
+      // alat GPS Essentials terpisah yang lebih presisi untuk mdpl).
+      if (_mdplCtrl.text.trim().isEmpty && _position != null && _position!.altitude != 0) {
+        _mdplCtrl.text = _position!.altitude.round().toString();
+      }
+    });
+    showSnack(context, 'Koordinat dikunci di akurasi saat ini.');
   }
 
   _AccuracyTier get _accuracyTier {
@@ -320,7 +329,11 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
   double? _lingkarToDiameter(String lingkarText) {
     final lingkar = _parseDouble(lingkarText);
     if (lingkar == null) return null;
-    return lingkar / math.pi;
+    final diameter = lingkar / math.pi;
+    // Dibulatkan 1 angka di belakang koma — presisi pengukuran manual
+    // di lapangan memang tidak sampai banyak desimal, jadi angka
+    // sepanjang itu cuma noise, bukan informasi tambahan yang berguna.
+    return double.parse(diameter.toStringAsFixed(1));
   }
 
   /// Validasi sebelum simpan. Sengaja TIDAK mewajibkan field pengukuran
@@ -351,9 +364,16 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
   }
 
   Future<void> _save() async {
+    // Cegah tap ganda: tap kedua/ketiga yang masuk SEBELUM frame
+    // rebuild (tombol jadi disabled) sempat tampil, akan langsung
+    // ditolak di sini alih-alih ikut menjalankan _save() lagi.
+    if (_saving) return;
+
     final error = _validate();
     if (error != null) {
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(content: Text(error)));
       return;
     }
 
@@ -430,18 +450,18 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
       }
 
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(_isEditMode
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(SnackBar(content: Text(_isEditMode
             ? 'Perubahan tersimpan offline. Akan disinkronkan ulang saat online.'
-            : 'Data tersimpan offline. Akan disinkronkan saat online.')),
-      );
+            : 'Data tersimpan offline. Akan disinkronkan saat online.')));
       Navigator.of(context).pop();
     } catch (_) {
       if (!mounted) return;
       setState(() => _saving = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Gagal menyimpan data. Coba lagi.')),
-      );
+      ScaffoldMessenger.of(context)
+        ..clearSnackBars()
+        ..showSnackBar(const SnackBar(content: Text('Gagal menyimpan data. Coba lagi.')));
     }
   }
 
@@ -465,12 +485,12 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
               const SizedBox(height: AppSpacing.md),
               Row(
                 children: [
-                  Expanded(child: AppTextField(label: 'Titik Pengamatan', controller: _titikCtrl, hintText: 'TP-A04')),
+                  Expanded(child: AppTextField(label: 'Titik Pengamatan', controller: _titikCtrl, hintText: 'A01')),
                   const SizedBox(width: AppSpacing.sm),
                   Expanded(
                     child: AppTextField(
                       label: 'Ketinggian',
-                      optionalHint: 'otomatis',
+                      isAuto: true,
                       unit: 'mdpl',
                       useMonoFont: true,
                       controller: _mdplCtrl,
@@ -491,15 +511,15 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
               AppTextField(label: 'Spesies (boleh diketik manual)', controller: _spesiesCtrl, hintText: 'Nepenthes spectabilis'),
               const SizedBox(height: AppSpacing.md),
               Row(children: [
-                Expanded(child: AppTextField(label: 'Panjang Kantong', unit: 'cm', isManual: true, useMonoFont: true, controller: _panjangKantongCtrl, hintText: '3.5', keyboardType: TextInputType.number)),
+                Expanded(child: AppTextField(label: 'Panjang Kantong', unit: 'cm', useMonoFont: true, controller: _panjangKantongCtrl, hintText: '3.5', keyboardType: TextInputType.number)),
                 const SizedBox(width: AppSpacing.sm),
-                Expanded(child: AppTextField(label: 'Lingkar Kantong', optionalHint: 'lebih gampang diukur', unit: 'cm', isManual: true, useMonoFont: true, controller: _lingkarKantongCtrl, hintText: '5.7', keyboardType: TextInputType.number)),
+                Expanded(child: AppTextField(label: 'Lingkar Kantong', unit: 'cm', useMonoFont: true, controller: _lingkarKantongCtrl, hintText: '5.7', keyboardType: TextInputType.number)),
               ]),
               const SizedBox(height: AppSpacing.md),
               Row(children: [
-                Expanded(child: AppTextField(label: 'Tinggi Tanaman', unit: 'cm', isManual: true, useMonoFont: true, controller: _tinggiTanamanCtrl, hintText: '24', keyboardType: TextInputType.number)),
+                Expanded(child: AppTextField(label: 'Tinggi Tanaman', unit: 'cm', useMonoFont: true, controller: _tinggiTanamanCtrl, hintText: '24', keyboardType: TextInputType.number)),
                 const SizedBox(width: AppSpacing.sm),
-                Expanded(child: AppTextField(label: 'Panjang Daun', unit: 'cm', isManual: true, useMonoFont: true, controller: _panjangDaunCtrl, hintText: '9', keyboardType: TextInputType.number)),
+                Expanded(child: AppTextField(label: 'Panjang Daun', unit: 'cm', useMonoFont: true, controller: _panjangDaunCtrl, hintText: '9', keyboardType: TextInputType.number)),
               ]),
               const SizedBox(height: AppSpacing.md),
               AppTextField(label: 'Warna Kantong', controller: _warnaKantongCtrl, hintText: 'Hijau kekuningan bercak ungu'),
@@ -546,15 +566,15 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
                 const SizedBox(height: AppSpacing.md),
               ],
               Row(children: [
-                Expanded(child: AppTextField(label: 'pH Tanah', unit: 'pH', isManual: true, useMonoFont: true, controller: _phCtrl, hintText: '5.4', keyboardType: TextInputType.number)),
+                Expanded(child: AppTextField(label: 'pH Tanah', unit: 'pH', useMonoFont: true, controller: _phCtrl, hintText: '5.4', keyboardType: TextInputType.number)),
                 const SizedBox(width: AppSpacing.sm),
-                Expanded(child: AppTextField(label: 'Kelembapan Tanah', unit: '%', isManual: true, useMonoFont: true, controller: _kelembapanTanahCtrl, hintText: '53', keyboardType: TextInputType.number)),
+                Expanded(child: AppTextField(label: 'Kelembapan Tanah', unit: '%', useMonoFont: true, controller: _kelembapanTanahCtrl, hintText: '53', keyboardType: TextInputType.number)),
               ]),
               const SizedBox(height: AppSpacing.md),
               Row(children: [
-                Expanded(child: AppTextField(label: 'Kelembapan Udara', unit: '%RH', isManual: true, useMonoFont: true, controller: _kelembapanUdaraCtrl, hintText: '73', keyboardType: TextInputType.number)),
+                Expanded(child: AppTextField(label: 'Kelembapan Udara', unit: '%RH', useMonoFont: true, controller: _kelembapanUdaraCtrl, hintText: '73', keyboardType: TextInputType.number)),
                 const SizedBox(width: AppSpacing.sm),
-                Expanded(child: AppTextField(label: 'Suhu Udara', unit: '°C', isManual: true, useMonoFont: true, controller: _suhuCtrl, hintText: '22', keyboardType: TextInputType.number)),
+                Expanded(child: AppTextField(label: 'Suhu Udara', unit: '°C', useMonoFont: true, controller: _suhuCtrl, hintText: '22', keyboardType: TextInputType.number)),
               ]),
               const SizedBox(height: AppSpacing.md),
               AppTextField(label: 'Deskripsi Habitat', controller: _deskripsiCtrl, hintText: 'Semak belukar, tanah berhumus, vegetasi rapat…', maxLines: 3),
@@ -637,15 +657,34 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
           setState(() => _tanggal = DateTime(picked.year, picked.month, picked.day, _tanggal.hour, _tanggal.minute));
         }
       },
-      child: InputDecorator(
-        decoration: const InputDecoration(labelText: 'Tanggal Pengamatan'),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(dateStr, style: AppTypography.bodyMd),
-            const Icon(Icons.calendar_today_outlined, size: 15, color: AppColors.muted),
-          ],
-        ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Wrap(
+            crossAxisAlignment: WrapCrossAlignment.center,
+            spacing: 6,
+            children: [
+              const Text('Tanggal Pengamatan', style: AppTypography.label),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                decoration: BoxDecoration(color: AppColors.greenBg, borderRadius: AppRadius.pillR),
+                child: const Text('otomatis',
+                    style: TextStyle(fontFamily: 'Inter', fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.greenOk, letterSpacing: 0.2)),
+              ),
+            ],
+          ),
+          const SizedBox(height: 5),
+          InputDecorator(
+            decoration: const InputDecoration(),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(dateStr, style: AppTypography.bodyMd),
+                const Icon(Icons.calendar_today_outlined, size: 15, color: AppColors.muted),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

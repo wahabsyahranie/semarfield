@@ -99,14 +99,42 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Future<void> _save() async {
     if (_saving) return; // cegah tap berkali-kali numpuk beberapa proses simpan sekaligus
     setState(() => _saving = true);
+
+    // 1) Simpan ke database lokal dulu — ini WAJIB berhasil duluan,
+    // apa pun kondisi internetnya, supaya perubahan tidak pernah hilang.
     await _profileRepo.simpanProfile(
       displayName: _nameCtrl.text.trim().isEmpty ? null : _nameCtrl.text.trim(),
       phoneNumber: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
       avatarLocalPath: _avatarPath,
     );
     if (!mounted) return;
-    setState(() => _saving = false);
-    showSnack(context, 'Profil tersimpan offline.');
+
+    // 2) BARU coba dorong ke Firebase saat itu juga. Ini yang sebelumnya
+    // kelewat — simpanProfile() di atas cuma menulis ke sqlite lokal
+    // dan menandai syncStatus 'pending', tidak pernah benar-benar
+    // memanggil Firestore. Sekarang dipanggil eksplisit di sini, dengan
+    // penanganan kalau tidak ada internet (bukan dianggap error).
+    try {
+      final synced = await _syncService.syncProfileOnly();
+      if (!mounted) return;
+      showSnack(
+        context,
+        synced
+            ? 'Profil tersimpan & disinkronkan ke Firebase.'
+            : 'Profil tersimpan offline — akan disinkronkan otomatis begitu ada internet.',
+      );
+    } on SyncFailure catch (e) {
+      if (!mounted) return;
+      // Perubahan tetap aman di lokal walau bagian sync-nya gagal
+      // (mis. sesi login bermasalah) — makanya pesannya bukan "gagal
+      // simpan", tapi spesifik ke bagian sync-nya saja.
+      showSnack(context, 'Tersimpan lokal, tapi sync ke Firebase gagal: ${e.message}');
+    } catch (_) {
+      if (!mounted) return;
+      showSnack(context, 'Tersimpan lokal, tapi sync ke Firebase gagal. Coba sync manual nanti.');
+    } finally {
+      if (mounted) setState(() => _saving = false);
+    }
   }
 
   Future<void> _handleSyncTap() async {

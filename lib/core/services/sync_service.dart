@@ -66,6 +66,30 @@ class SyncService {
     return SyncResult(entriesSynced: synced, entriesFailed: failed, profileSynced: profileSynced);
   }
 
+  /// Sync PROFIL SAJA — dipakai Profile screen saat user menekan
+  /// "Simpan Perubahan", supaya edit nama/HP/foto langsung naik ke
+  /// Firestore saat itu juga (tidak perlu nunggu user buka tombol
+  /// sync manual terpisah, dan tidak ikut mendorong semua data
+  /// pendataan yang mungkin masih pending — itu tetap urusan
+  /// `syncAll()`, bukan tanggung jawab tombol simpan profil).
+  ///
+  /// Return true kalau berhasil sync ke Firestore. Return false
+  /// (bukan throw) kalau offline — supaya pemanggilnya bisa tetap
+  /// bilang "tersimpan lokal, nanti disinkronkan otomatis" alih-alih
+  /// menampilkan error yang menakutkan untuk kondisi yang sebetulnya
+  /// normal (lagi di lapangan tanpa sinyal).
+  Future<bool> syncProfileOnly() async {
+    final online = await _connectivity.isOnline();
+    if (!online) return false;
+
+    final uid = FirebaseAuth.instance.currentUser?.uid;
+    if (uid == null) {
+      throw SyncFailure('Sesi login tidak ditemukan. Silakan login ulang.');
+    }
+
+    return _syncProfileIfPending(uid: uid);
+  }
+
   Future<void> _syncOneEntry({required String uid, required PendataanEntry entry}) async {
     final photos = await _pendataanRepo.getPhotosForEntry(entry.id);
     final photoData = <Map<String, String>>[];
