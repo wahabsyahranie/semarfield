@@ -287,7 +287,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
 
           Transform.translate(
-            offset: const Offset(0, -26),
+            offset: const Offset(0, -14),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
               child: Column(

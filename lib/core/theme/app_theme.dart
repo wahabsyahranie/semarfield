@@ -36,7 +36,18 @@ class AppTheme {
         foregroundColor: AppColors.parchment,
         elevation: 0,
         centerTitle: false,
-        titleTextStyle: AppTypography.h2,
+        // PENTING: jangan pakai AppTypography.h2 di sini — h2 punya
+        // warna ink (gelap) hardcoded untuk konteks background terang
+        // (kartu, dsb). Semua AppBar di app ini selalu berlatar hijau
+        // gelap, jadi title wajib punya warna terang sendiri, terlepas
+        // dari foregroundColor di atas (foregroundColor cuma memengaruhi
+        // ikon/tombol back, TIDAK menimpa warna eksplisit di titleTextStyle).
+        titleTextStyle: TextStyle(
+          fontFamily: AppTypography.display,
+          fontWeight: FontWeight.w600,
+          fontSize: 19,
+          color: AppColors.parchment,
+        ),
       ),
       cardTheme: CardThemeData(
         color: AppColors.card,
