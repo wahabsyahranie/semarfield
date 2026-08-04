@@ -124,13 +124,6 @@ class _DetailScreenState extends State<DetailScreen> {
             children: [
               AppBar(
                 title: const Text('Detail Pendataan'),
-                actions: [
-                  IconButton(
-                    icon: const Icon(Icons.edit_outlined),
-                    tooltip: 'Edit',
-                    onPressed: () => _handleEdit(entry),
-                  ),
-                ],
               ),
               Expanded(
                 child: ListView(

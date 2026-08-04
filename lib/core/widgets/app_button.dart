@@ -4,7 +4,7 @@ import '../theme/app_radius.dart';
 import '../theme/app_spacing.dart';
 import '../theme/app_typography.dart';
 
-enum AppButtonVariant { primary, secondary, wine, danger }
+enum AppButtonVariant { primary, secondary, wine, danger, google }
 
 /// Tombol standar aplikasi. Pakai ini di semua tempat — jangan
 /// bikin ElevatedButton/OutlinedButton custom baru per layar.
@@ -17,7 +17,8 @@ class AppButton extends StatelessWidget {
   final VoidCallback? onPressed;
   final AppButtonVariant variant;
   final IconData? icon;
-  final Widget? iconWidget; // dipakai kalau ikonnya bukan IconData bawaan Flutter (mis. logo brand)
+  final Widget?
+  iconWidget; // dipakai kalau ikonnya bukan IconData bawaan Flutter (mis. logo brand)
   final bool loading;
   final bool fullWidth;
 
@@ -40,10 +41,7 @@ class AppButton extends StatelessWidget {
         ? SizedBox(
             width: 16,
             height: 16,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: colors.fg,
-            ),
+            child: CircularProgressIndicator(strokeWidth: 2, color: colors.fg),
           )
         : Row(
             mainAxisSize: MainAxisSize.min,
@@ -55,7 +53,10 @@ class AppButton extends StatelessWidget {
                 Icon(icon, size: 16, color: colors.fg),
                 const SizedBox(width: AppSpacing.sm),
               ],
-              Text(label, style: AppTypography.button.copyWith(color: colors.fg)),
+              Text(
+                label,
+                style: AppTypography.button.copyWith(color: colors.fg),
+              ),
             ],
           );
 
@@ -63,6 +64,7 @@ class AppButton extends StatelessWidget {
         ? OutlinedButton(
             onPressed: loading ? null : onPressed,
             style: OutlinedButton.styleFrom(
+              // backgroundColor: colors.bg,
               foregroundColor: colors.fg,
               side: BorderSide(color: colors.border ?? colors.fg, width: 1.5),
               padding: const EdgeInsets.symmetric(vertical: AppSpacing.md),
@@ -92,9 +94,22 @@ class AppButton extends StatelessWidget {
       case AppButtonVariant.wine:
         return _BtnColors(bg: AppColors.wine, fg: Colors.white);
       case AppButtonVariant.secondary:
-        return _BtnColors(bg: Colors.white, fg: AppColors.forestDeep, border: AppColors.forestDeep);
+        return _BtnColors(
+          bg: Colors.white,
+          fg: AppColors.forestDeep,
+          border: AppColors.forestDeep,
+        );
+      case AppButtonVariant.google:
+        return _BtnColors(
+          bg: Colors.white,
+          fg: AppColors.forestDeep,
+          border: AppColors.forestDeep,
+        );
       case AppButtonVariant.danger:
-        return _BtnColors(bg: Colors.transparent, fg: AppColors.redWarn, border: AppColors.redWarn);
+        // Solid merah, bukan transparan — transparan bikin tombol
+        // seperti "Keluar Akun" nyaris tak terlihat di atas latar
+        // parchment/cream karena tidak ada bentuk tombol yang kontras.
+        return _BtnColors(bg: AppColors.redWarn, fg: Colors.white);
     }
   }
 }

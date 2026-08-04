@@ -91,10 +91,14 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
       _tanggal = entry.tanggalPengamatan;
       _spesiesCtrl.text = entry.spesies ?? '';
       _panjangKantongCtrl.text = _fmtNum(entry.panjangKantongCm);
-      // Data tersimpan sebagai diameter — tampilkan sebagai lingkar
-      // (keliling) di form ini, konsisten dengan cara user mengisinya.
+      // Data tersimpan sebagai diameter (presisi penuh) — ditampilkan
+      // sebagai lingkar di form ini, dibulatkan 2 desimal HANYA untuk
+      // tampilan supaya tidak muncul angka desimal panjang akibat
+      // pembulatan floating-point (mis. "5.699999999999999"). Nilai
+      // yang benar-benar tersimpan di database tidak terpengaruh oleh
+      // pembulatan tampilan ini.
       _lingkarKantongCtrl.text = entry.diameterKantongCm != null
-          ? _fmtNum(entry.diameterKantongCm! * math.pi)
+          ? _fmtNum(double.parse((entry.diameterKantongCm! * math.pi).toStringAsFixed(2)))
           : '';
       _tinggiTanamanCtrl.text = _fmtNum(entry.tinggiTanamanCm);
       _panjangDaunCtrl.text = _fmtNum(entry.panjangDaunCm);
@@ -329,11 +333,14 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
   double? _lingkarToDiameter(String lingkarText) {
     final lingkar = _parseDouble(lingkarText);
     if (lingkar == null) return null;
-    final diameter = lingkar / math.pi;
-    // Dibulatkan 1 angka di belakang koma — presisi pengukuran manual
-    // di lapangan memang tidak sampai banyak desimal, jadi angka
-    // sepanjang itu cuma noise, bukan informasi tambahan yang berguna.
-    return double.parse(diameter.toStringAsFixed(1));
+    // TIDAK dibulatkan di sini — kalau dibulatkan (mis. 1 angka desimal)
+    // sebelum disimpan, lalu di mode edit dikonversi balik ke lingkar
+    // (lingkar = diameter × π), hasilnya bergeser dari angka asli yang
+    // diketik user (mis. ketik 5.7 → tersimpan sebagai diameter 1.8 →
+    // saat edit ditampilkan lagi sebagai 5.65, bukan 5.7 lagi). Simpan
+    // presisi penuh; pembulatan tampilan (kalau perlu) urusan UI saat
+    // menampilkan, bukan mengubah nilai yang tersimpan.
+    return lingkar / math.pi;
   }
 
   /// Validasi sebelum simpan. Sengaja TIDAK mewajibkan field pengukuran
@@ -508,7 +515,7 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
           _sectionCard(
             title: 'Data Individu Nepenthes',
             children: [
-              AppTextField(label: 'Spesies (boleh diketik manual)', controller: _spesiesCtrl, hintText: 'Nepenthes spectabilis'),
+              AppTextField(label: 'Spesies', controller: _spesiesCtrl, hintText: 'Nepenthes spectabilis'),
               const SizedBox(height: AppSpacing.md),
               Row(children: [
                 Expanded(child: AppTextField(label: 'Panjang Kantong', unit: 'cm', useMonoFont: true, controller: _panjangKantongCtrl, hintText: '3.5', keyboardType: TextInputType.number)),
@@ -530,7 +537,6 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
           const SizedBox(height: AppSpacing.md),
           _sectionCard(
             title: 'Kondisi Habitat',
-            note: 'Belum ada sensor terhubung — isi manual dari alat ukur genggam bila tersedia, atau lewati bila tidak ada.',
             children: [
               if (_habitatSuggestion != null) ...[
                 Container(

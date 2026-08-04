@@ -2,6 +2,8 @@ import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:share_plus/share_plus.dart';
+import '../../core/services/export_service.dart';
 import '../../core/services/photo_storage_service.dart';
 import '../../core/services/sync_service.dart';
 import '../../core/theme/app_colors.dart';
@@ -28,7 +30,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _authRepo = AuthRepository();
   final _photoService = PhotoStorageService();
   final _syncService = SyncService();
+  final _exportService = ExportService();
   bool _syncing = false;
+  bool _exporting = false;
 
   final _nameCtrl = TextEditingController();
   final _phoneCtrl = TextEditingController();
@@ -97,14 +101,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _save() async {
-    if (_saving) return; // cegah tap berkali-kali numpuk beberapa proses simpan sekaligus
+    if (_saving)
+      return; // cegah tap berkali-kali numpuk beberapa proses simpan sekaligus
     setState(() => _saving = true);
 
     // 1) Simpan ke database lokal dulu — ini WAJIB berhasil duluan,
     // apa pun kondisi internetnya, supaya perubahan tidak pernah hilang.
     await _profileRepo.simpanProfile(
       displayName: _nameCtrl.text.trim().isEmpty ? null : _nameCtrl.text.trim(),
-      phoneNumber: _phoneCtrl.text.trim().isEmpty ? null : _phoneCtrl.text.trim(),
+      phoneNumber: _phoneCtrl.text.trim().isEmpty
+          ? null
+          : _phoneCtrl.text.trim(),
       avatarLocalPath: _avatarPath,
     );
     if (!mounted) return;
@@ -128,10 +135,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
       // Perubahan tetap aman di lokal walau bagian sync-nya gagal
       // (mis. sesi login bermasalah) — makanya pesannya bukan "gagal
       // simpan", tapi spesifik ke bagian sync-nya saja.
-      showSnack(context, 'Tersimpan lokal, tapi sync ke Firebase gagal: ${e.message}');
+      showSnack(
+        context,
+        'Tersimpan lokal, tapi sync ke Firebase gagal: ${e.message}',
+      );
     } catch (_) {
       if (!mounted) return;
-      showSnack(context, 'Tersimpan lokal, tapi sync ke Firebase gagal. Coba sync manual nanti.');
+      showSnack(
+        context,
+        'Tersimpan lokal, tapi sync ke Firebase gagal. Coba sync manual nanti.',
+      );
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -145,15 +158,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
       showDialog(
         context: context,
         builder: (context) => AlertDialog(
-          title: Text(result.hasFailure ? 'Sinkronisasi Sebagian Berhasil' : 'Sinkronisasi Berhasil'),
+          title: Text(
+            result.hasFailure
+                ? 'Sinkronisasi Sebagian Berhasil'
+                : 'Sinkronisasi Berhasil',
+          ),
           content: Text(
             result.totalProcessed == 0
                 ? 'Tidak ada data baru untuk disinkronkan.'
                 : '${result.entriesSynced} data berhasil disinkronkan.'
-                    '${result.entriesFailed > 0 ? '\n${result.entriesFailed} data gagal — akan dicoba lagi otomatis di sync berikutnya.' : ''}'
-                    '${result.profileSynced ? '\nProfil juga berhasil disinkronkan.' : ''}',
+                      '${result.entriesFailed > 0 ? '\n${result.entriesFailed} data gagal — akan dicoba lagi otomatis di sync berikutnya.' : ''}'
+                      '${result.profileSynced ? '\nProfil juga berhasil disinkronkan.' : ''}',
           ),
-          actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Oke'))],
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Oke'),
+            ),
+          ],
         ),
       );
     } on SyncFailure catch (e) {
@@ -178,10 +200,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'Data yang belum sempat disinkronkan akan hilang permanen. Pastikan sudah sync dulu kalau ragu.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Hapus', style: TextStyle(color: AppColors.redWarn)),
+            child: const Text(
+              'Hapus',
+              style: TextStyle(color: AppColors.redWarn),
+            ),
           ),
         ],
       ),
@@ -193,6 +221,30 @@ class _ProfileScreenState extends State<ProfileScreen> {
     showSnack(context, '$count data lokal dihapus dari HP ini.');
   }
 
+  Future<void> _handleExport() async {
+    if (_exporting) return;
+    setState(() => _exporting = true);
+    try {
+      final zipFile = await _exportService.exportAllData();
+      if (!mounted) return;
+      // Share sheet native — user pilih sendiri mau disimpan ke mana
+      // (Drive, WhatsApp, Files, dst). Ini cara paling aman & portabel
+      // untuk "download" di Flutter tanpa perlu izin penyimpanan
+      // khusus yang berbeda-beda tiap versi Android.
+      await Share.shareXFiles([
+        XFile(zipFile.path),
+      ], text: 'Export data pendataan Nepenthes — SemarField');
+    } on ExportFailure catch (e) {
+      if (!mounted) return;
+      showSnack(context, e.message);
+    } catch (_) {
+      if (!mounted) return;
+      showSnack(context, 'Gagal membuat file export. Coba lagi.');
+    } finally {
+      if (mounted) setState(() => _exporting = false);
+    }
+  }
+
   Future<void> _handleLogout() async {
     final confirmed = await showDialog<bool>(
       context: context,
@@ -202,8 +254,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           'Data pendataan yang belum tersinkron akan tetap tersimpan di HP ini sampai kamu login kembali dan sync.',
         ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Batal')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Keluar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Batal'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Keluar'),
+          ),
         ],
       ),
     );
@@ -230,201 +288,302 @@ class _ProfileScreenState extends State<ProfileScreen> {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
       child: Scaffold(
-      backgroundColor: AppColors.parchment,
-      body: ListView(
-        padding: EdgeInsets.zero,
-        children: [
-          Container(
-            decoration: const BoxDecoration(
-              color: AppColors.forestDeep,
-              borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-            ),
-            // SafeArea cuma di sini, bukan di body Scaffold — sama seperti
-            // pola di HomeScreen — supaya warna hijau tetap mengalir sampai
-            // ke belakang status bar, tapi tombol back tetap didorong turun
-            // secukupnya sehingga tidak ketiban status bar / notch.
-            child: SafeArea(
-              bottom: false,
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.xxl),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.arrow_back, color: AppColors.parchment),
-                          onPressed: () => Navigator.of(context).pop(),
-                        ),
-                      ],
-                    ),
-                    Stack(
-                      children: [
-                        Builder(builder: (context) {
-                          final ImageProvider? img = _avatarPath != null
-                              ? FileImage(File(_avatarPath!))
-                              : (_avatarRemoteUrl != null
-                                  ? NetworkImage(_avatarRemoteUrl!)
-                                  : (googleUser?.photoURL != null ? NetworkImage(googleUser!.photoURL!) : null)) as ImageProvider?;
-                          return CircleAvatar(
-                            radius: 40,
-                            backgroundColor: AppColors.wineSoft,
-                            backgroundImage: img,
-                            child: img == null
-                                ? Text(
-                                    _nameCtrl.text.isNotEmpty ? _nameCtrl.text[0].toUpperCase() : '?',
-                                    style: const TextStyle(color: Colors.white, fontSize: 26, fontFamily: 'Fraunces', fontWeight: FontWeight.w600),
-                                  )
-                                : null,
-                          );
-                        }),
-                        Positioned(
-                          bottom: 0, right: 0,
-                          child: InkWell(
-                            onTap: _changeAvatar,
-                            child: Container(
-                              width: 26, height: 26,
-                              decoration: BoxDecoration(
-                                color: AppColors.amber,
-                                shape: BoxShape.circle,
-                                border: Border.all(color: AppColors.forestDeep, width: 2.5),
+        backgroundColor: AppColors.parchment,
+        body: ListView(
+          padding: EdgeInsets.zero,
+          children: [
+            Container(
+              decoration: const BoxDecoration(
+                color: AppColors.forestDeep,
+                borderRadius: BorderRadius.vertical(
+                  bottom: Radius.circular(24),
+                ),
+              ),
+              // SafeArea cuma di sini, bukan di body Scaffold — sama seperti
+              // pola di HomeScreen — supaya warna hijau tetap mengalir sampai
+              // ke belakang status bar, tapi tombol back tetap didorong turun
+              // secukupnya sehingga tidak ketiban status bar / notch.
+              child: SafeArea(
+                bottom: false,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.lg,
+                    AppSpacing.md,
+                    AppSpacing.lg,
+                    AppSpacing.xxl,
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          IconButton(
+                            icon: const Icon(
+                              Icons.arrow_back,
+                              color: AppColors.parchment,
+                            ),
+                            onPressed: () => Navigator.of(context).pop(),
+                          ),
+                        ],
+                      ),
+                      Stack(
+                        children: [
+                          Builder(
+                            builder: (context) {
+                              final ImageProvider? img = _avatarPath != null
+                                  ? FileImage(File(_avatarPath!))
+                                  : (_avatarRemoteUrl != null
+                                            ? NetworkImage(_avatarRemoteUrl!)
+                                            : (googleUser?.photoURL != null
+                                                  ? NetworkImage(
+                                                      googleUser!.photoURL!,
+                                                    )
+                                                  : null))
+                                        as ImageProvider?;
+                              return CircleAvatar(
+                                radius: 40,
+                                backgroundColor: AppColors.wineSoft,
+                                backgroundImage: img,
+                                child: img == null
+                                    ? Text(
+                                        _nameCtrl.text.isNotEmpty
+                                            ? _nameCtrl.text[0].toUpperCase()
+                                            : '?',
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 26,
+                                          fontFamily: 'Fraunces',
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      )
+                                    : null,
+                              );
+                            },
+                          ),
+                          Positioned(
+                            bottom: 0,
+                            right: 0,
+                            child: InkWell(
+                              onTap: _changeAvatar,
+                              child: Container(
+                                width: 26,
+                                height: 26,
+                                decoration: BoxDecoration(
+                                  color: AppColors.amber,
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                    color: AppColors.forestDeep,
+                                    width: 2.5,
+                                  ),
+                                ),
+                                child: const Icon(
+                                  Icons.edit,
+                                  size: 12,
+                                  color: Colors.white,
+                                ),
                               ),
-                              child: const Icon(Icons.edit, size: 12, color: Colors.white),
                             ),
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: AppSpacing.sm),
+                      Text(
+                        _nameCtrl.text.isEmpty ? 'Tanpa Nama' : _nameCtrl.text,
+                        style: const TextStyle(
+                          fontFamily: 'Fraunces',
+                          fontWeight: FontWeight.w600,
+                          fontSize: 17,
+                          color: AppColors.parchment,
                         ),
-                      ],
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        googleUser?.email ?? '-',
+                        style: const TextStyle(
+                          fontFamily: 'JetBrainsMono',
+                          fontSize: 10,
+                          color: Color(0xFF9FB89A),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            Transform.translate(
+              offset: const Offset(0, -14),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
+                child: Column(
+                  children: [
+                    // --- Kartu status sync ---
+                    AppCard(
+                      child: StreamBuilder<int>(
+                        stream: _pendataanRepo.watchPendingCount(),
+                        builder: (context, snapshot) {
+                          final pending = snapshot.data ?? 0;
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment:
+                                    MainAxisAlignment.spaceBetween,
+                                children: [
+                                  const Text(
+                                    'STATUS SINKRONISASI',
+                                    style: TextStyle(
+                                      fontFamily: 'Inter',
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 11,
+                                      letterSpacing: 0.4,
+                                      color: AppColors.forestDeep,
+                                    ),
+                                  ),
+                                  Text(
+                                    '$pending',
+                                    style: const TextStyle(
+                                      fontFamily: 'Fraunces',
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 24,
+                                      color: AppColors.amber,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: AppSpacing.md),
+                              AppButton(
+                                label: 'Sinkronkan Sekarang ke Firebase',
+                                icon: Icons.sync,
+                                variant: AppButtonVariant.primary,
+                                loading: _syncing,
+                                onPressed: _handleSyncTap,
+                              ),
+                              const SizedBox(height: 6),
+                              Text(
+                                pending == 0
+                                    ? 'Tidak ada data yang menunggu sinkronisasi.'
+                                    : '$pending data menunggu koneksi internet untuk disinkronkan.',
+                                style: AppTypography.bodySm,
+                                textAlign: TextAlign.center,
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+
+                    // --- Form profil ---
+                    AppCard(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _profileField('Nama Lengkap', _nameCtrl),
+                          const Divider(height: AppSpacing.lg),
+                          _profileField(
+                            'Nomor HP',
+                            _phoneCtrl,
+                            keyboardType: TextInputType.phone,
+                          ),
+                          const Divider(height: AppSpacing.lg),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Expanded(
+                                child: Text(
+                                  'Email',
+                                  style: AppTypography.label,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            googleUser?.email ?? '-',
+                            style: AppTypography.bodyMd.copyWith(
+                              color: AppColors.muted,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    AppButton(
+                      label: 'Simpan Perubahan',
+                      icon: Icons.check,
+                      loading: _saving,
+                      onPressed: _save,
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+
+                    // --- Zona berbahaya ---
+                    Text(
+                      'ZONA LAINNYA',
+                      style: AppTypography.bodySm.copyWith(
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.4,
+                      ),
                     ),
                     const SizedBox(height: AppSpacing.sm),
-                    Text(
-                      _nameCtrl.text.isEmpty ? 'Tanpa Nama' : _nameCtrl.text,
-                      style: const TextStyle(fontFamily: 'Fraunces', fontWeight: FontWeight.w600, fontSize: 17, color: AppColors.parchment),
+                    AppButton(
+                      label: 'Export Semua Data (Excel + Foto)',
+                      icon: Icons.ios_share,
+                      variant: AppButtonVariant.secondary,
+                      loading: _exporting,
+                      onPressed: _handleExport,
                     ),
-                    const SizedBox(height: 3),
+                    const SizedBox(height: AppSpacing.sm),
+                    AppButton(
+                      label: 'Hapus Semua Data Lokal',
+                      icon: Icons.delete_sweep_outlined,
+                      variant: AppButtonVariant.secondary,
+                      onPressed: _handleClearLocalData,
+                    ),
+                    const SizedBox(height: AppSpacing.md),
+                    AppButton(
+                      label: 'Keluar Akun',
+                      variant: AppButtonVariant.wine,
+                      onPressed: _handleLogout,
+                    ),
+                    const SizedBox(height: AppSpacing.xl),
+
+                    // --- Tentang Aplikasi ---
+                    const Divider(),
+                    const SizedBox(height: AppSpacing.md),
                     Text(
-                      googleUser?.email ?? '-',
-                      style: const TextStyle(fontFamily: 'JetBrainsMono', fontSize: 10, color: Color(0xFF9FB89A)),
+                      'SemarField',
+                      style: AppTypography.bodyMd.copyWith(
+                        fontWeight: FontWeight.w700,
+                        color: AppColors.forestDeep,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Dikembangkan oleh Abdul Wahab Syahranie · 2026\n'
+                      'MERAPI POLNES — Mahasiswa Teknologi Informasi\n'
+                      'Pencinta Alam Indonesia, Politeknik Negeri Samarinda',
+                      style: AppTypography.bodySm,
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(
+                      height:
+                          AppSpacing.xl + MediaQuery.of(context).padding.bottom,
                     ),
                   ],
                 ),
               ),
             ),
-          ),
-
-          Transform.translate(
-            offset: const Offset(0, -14),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.lg),
-              child: Column(
-                children: [
-                  // --- Kartu status sync ---
-                  AppCard(
-                    child: StreamBuilder<int>(
-                      stream: _pendataanRepo.watchPendingCount(),
-                      builder: (context, snapshot) {
-                        final pending = snapshot.data ?? 0;
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                const Text('STATUS SINKRONISASI',
-                                    style: TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 11, letterSpacing: 0.4, color: AppColors.forestDeep)),
-                                Text('$pending',
-                                    style: const TextStyle(fontFamily: 'Fraunces', fontWeight: FontWeight.w700, fontSize: 24, color: AppColors.amber)),
-                              ],
-                            ),
-                            const SizedBox(height: AppSpacing.md),
-                            AppButton(
-                              label: 'Sinkronkan Sekarang ke Firebase',
-                              icon: Icons.sync,
-                              variant: AppButtonVariant.wine,
-                              loading: _syncing,
-                              onPressed: _handleSyncTap,
-                            ),
-                            const SizedBox(height: 6),
-                            Text(
-                              pending == 0
-                                  ? 'Tidak ada data yang menunggu sinkronisasi.'
-                                  : '$pending data menunggu koneksi internet untuk disinkronkan.',
-                              style: AppTypography.bodySm,
-                              textAlign: TextAlign.center,
-                            ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-
-                  // --- Form profil ---
-                  AppCard(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        _profileField('Nama Lengkap', _nameCtrl),
-                        const Divider(height: AppSpacing.lg),
-                        _profileField('Nomor HP', _phoneCtrl, keyboardType: TextInputType.phone),
-                        const Divider(height: AppSpacing.lg),
-                        Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Expanded(child: Text('Email', style: AppTypography.label)),
-                          ],
-                        ),
-                        const SizedBox(height: 2),
-                        Text(googleUser?.email ?? '-', style: AppTypography.bodyMd.copyWith(color: AppColors.muted)),
-                        Text('(dari Google, tidak bisa diubah)', style: AppTypography.bodySm.copyWith(fontStyle: FontStyle.italic)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  AppButton(label: 'Simpan Perubahan', icon: Icons.check, loading: _saving, onPressed: _save),
-                  const SizedBox(height: AppSpacing.xl),
-
-                  // --- Zona berbahaya ---
-                  Text('ZONA LAINNYA', style: AppTypography.bodySm.copyWith(fontWeight: FontWeight.w700, letterSpacing: 0.4)),
-                  const SizedBox(height: AppSpacing.sm),
-                  AppButton(
-                    label: 'Hapus Semua Data Lokal',
-                    icon: Icons.delete_sweep_outlined,
-                    variant: AppButtonVariant.secondary,
-                    onPressed: _handleClearLocalData,
-                  ),
-                  const SizedBox(height: 6),
-                  Text(
-                    'Membersihkan data di HP ini saja — data yang sudah tersinkron tetap aman di Firebase.',
-                    style: AppTypography.bodySm,
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: AppSpacing.md),
-                  AppButton(label: 'Keluar Akun', variant: AppButtonVariant.danger, onPressed: _handleLogout),
-                  const SizedBox(height: AppSpacing.xl),
-
-                  // --- Tentang Aplikasi ---
-                  const Divider(),
-                  const SizedBox(height: AppSpacing.md),
-                  Text('SemarField', style: AppTypography.bodyMd.copyWith(fontWeight: FontWeight.w700, color: AppColors.forestDeep)),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Dikembangkan oleh Abdul Wahab S · 2026\n'
-                    'MERAPI POLNES — Mahasiswa Teknologi Informasi\n'
-                    'Pencinta Alam Indonesia, Politeknik Negeri Samarinda',
-                    style: AppTypography.bodySm,
-                    textAlign: TextAlign.center,
-                  ),
-                  SizedBox(height: AppSpacing.xl + MediaQuery.of(context).padding.bottom),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
+          ],
+        ),
       ),
     );
   }
 
-  Widget _profileField(String label, TextEditingController controller, {TextInputType? keyboardType}) {
+  Widget _profileField(
+    String label,
+    TextEditingController controller, {
+    TextInputType? keyboardType,
+  }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -440,7 +599,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
             border: InputBorder.none,
             contentPadding: EdgeInsets.zero,
           ),
-          onChanged: (_) => setState(() {}), // supaya nama di header ikut update
+          onChanged: (_) =>
+              setState(() {}), // supaya nama di header ikut update
         ),
       ],
     );

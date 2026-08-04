@@ -103,7 +103,7 @@ class _LoginScreenState extends State<LoginScreen> {
               AppButton(
                 label: 'Masuk dengan Google',
                 iconWidget: const GoogleLogo(size: 18),
-                variant: AppButtonVariant.secondary,
+                variant: AppButtonVariant.google,
                 loading: _loading,
                 onPressed: _handleGoogleSignIn,
               ),
