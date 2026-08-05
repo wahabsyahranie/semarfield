@@ -7,6 +7,7 @@ import '../../core/theme/app_radius.dart';
 import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/utils/snack.dart';
+import '../../core/utils/text_format.dart';
 import '../../core/widgets/status_badge.dart';
 import 'add_data_form_screen.dart';
 import 'pendataan_repository.dart';
@@ -140,7 +141,7 @@ class _DetailScreenState extends State<DetailScreen> {
                             children: [
                               Expanded(
                                 child: Text(
-                                  entry.spesies?.isNotEmpty == true ? entry.spesies! : 'Belum teridentifikasi',
+                                  entry.spesies?.isNotEmpty == true ? capitalizeFirst(entry.spesies!) : 'Belum teridentifikasi',
                                   style: const TextStyle(
                                     fontFamily: 'Fraunces', fontStyle: FontStyle.italic,
                                     fontWeight: FontWeight.w600, fontSize: 21, color: AppColors.ink,
@@ -201,7 +202,7 @@ class _DetailScreenState extends State<DetailScreen> {
                             const SizedBox(height: AppSpacing.md),
                             _kv2('Tinggi Tanaman', _cm(entry.tinggiTanamanCm), 'Panjang Daun', _cm(entry.panjangDaunCm)),
                             const SizedBox(height: AppSpacing.md),
-                            _kv2('Warna Kantong', entry.warnaKantong, 'Jumlah Individu', entry.jumlahIndividu?.toString()),
+                            _kv2('Warna Kantong', entry.warnaKantong != null ? capitalizeFirst(entry.warnaKantong!) : null, 'Jumlah Individu', entry.jumlahIndividu?.toString()),
                           ]),
 
                           _section('Kondisi Habitat', [
@@ -209,7 +210,7 @@ class _DetailScreenState extends State<DetailScreen> {
                             const SizedBox(height: AppSpacing.md),
                             _kv2('Kelembapan Udara', _persen(entry.kelembapanUdaraPersen), 'Suhu Udara', entry.suhuUdaraCelsius != null ? '${entry.suhuUdaraCelsius}°C' : null),
                             const SizedBox(height: AppSpacing.md),
-                            _kv1('Deskripsi Habitat', entry.deskripsiHabitat),
+                            _kv1('Deskripsi Habitat', entry.deskripsiHabitat != null ? capitalizeFirst(entry.deskripsiHabitat!) : null),
                           ]),
                         ],
                       ),

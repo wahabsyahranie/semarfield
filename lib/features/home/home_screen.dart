@@ -18,6 +18,7 @@ import '../profile/profile_screen.dart';
 import '../../core/services/connectivity_service.dart';
 import '../../core/services/sync_service.dart';
 import '../../core/utils/snack.dart';
+import '../../core/utils/text_format.dart';
 
 enum _StatusFilter { semua, pending, synced }
 
@@ -439,7 +440,7 @@ class _EntryCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          entry.spesies?.isNotEmpty == true ? entry.spesies! : 'Belum teridentifikasi',
+                          entry.spesies?.isNotEmpty == true ? capitalizeFirst(entry.spesies!) : 'Belum teridentifikasi',
                           style: const TextStyle(
                             fontFamily: 'Fraunces',
                             fontWeight: FontWeight.w600,
