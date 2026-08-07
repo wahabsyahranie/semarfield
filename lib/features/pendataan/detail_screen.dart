@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import '../../core/database/app_database.dart';
+import '../../core/services/elevation_service.dart';
 import '../../core/services/sync_service.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/theme/app_radius.dart';
@@ -8,6 +9,7 @@ import '../../core/theme/app_spacing.dart';
 import '../../core/theme/app_typography.dart';
 import '../../core/utils/snack.dart';
 import '../../core/utils/text_format.dart';
+import '../../core/widgets/app_button.dart';
 import '../../core/widgets/status_badge.dart';
 import 'add_data_form_screen.dart';
 import 'pendataan_repository.dart';
@@ -23,7 +25,9 @@ class DetailScreen extends StatefulWidget {
 class _DetailScreenState extends State<DetailScreen> {
   final _repo = PendataanRepository();
   final _syncService = SyncService();
+  final _elevationService = ElevationService();
   bool _deletingCloud = false;
+  bool _fetchingElevasiApi = false;
 
   static const _bulanIndonesia = [
     '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
@@ -34,6 +38,75 @@ class _DetailScreenState extends State<DetailScreen> {
     final tgl = '${dt.day} ${_bulanIndonesia[dt.month]} ${dt.year}';
     final jam = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}';
     return '$tgl · $jam';
+  }
+
+  Future<void> _fetchElevasiApi(PendataanEntry entry) async {
+    if (entry.latitude == null || entry.longitude == null) {
+      showSnack(context, 'Koordinat belum lengkap — lengkapi lokasi dulu lewat Edit.');
+      return;
+    }
+    setState(() => _fetchingElevasiApi = true);
+    try {
+      final elevasi = await _elevationService.fetchElevation(
+        latitude: entry.latitude!,
+        longitude: entry.longitude!,
+      );
+      await _repo.updateElevasiApi(entry.id, elevasi);
+      // Tidak perlu setState untuk nilai elevasinya sendiri — StreamBuilder
+      // di build() otomatis dapat data terbaru begitu database ter-update.
+      if (!mounted) return;
+      showSnack(context, 'Elevasi berhasil diambil dari Google Maps.');
+    } on ElevationFailure catch (e) {
+      if (!mounted) return;
+      showSnack(context, e.message);
+    } catch (_) {
+      if (!mounted) return;
+      showSnack(context, 'Gagal mengambil elevasi. Coba lagi.');
+    } finally {
+      if (mounted) setState(() => _fetchingElevasiApi = false);
+    }
+  }
+
+  Widget _buildElevasiApiBlock(PendataanEntry entry) {
+    final hasCoords = entry.latitude != null && entry.longitude != null;
+    final hasElevasi = entry.elevasiApiMeter != null;
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('ELEVASI API MAPS', style: AppTypography.bodySm.copyWith(fontWeight: FontWeight.w700, letterSpacing: 0.3)),
+        const SizedBox(height: 6),
+        if (hasElevasi) ...[
+          Text(
+            '${entry.elevasiApiMeter!.toStringAsFixed(1)} mdpl',
+            style: const TextStyle(fontFamily: 'JetBrainsMono', fontWeight: FontWeight.w600, fontSize: 13, color: AppColors.ink),
+          ),
+          const SizedBox(height: 8),
+          AppButton(
+            label: 'Perbarui dari Google Maps',
+            icon: Icons.refresh,
+            variant: AppButtonVariant.secondary,
+            loading: _fetchingElevasiApi,
+            onPressed: hasCoords ? () => _fetchElevasiApi(entry) : null,
+          ),
+        ] else ...[
+          Text(
+            hasCoords
+                ? 'Belum diambil. Butuh internet untuk memanggil Google Maps Elevation API.'
+                : 'Koordinat belum lengkap — lengkapi lokasi dulu lewat Edit.',
+            style: AppTypography.bodySm,
+          ),
+          const SizedBox(height: 8),
+          AppButton(
+            label: 'Ambil dari Google Maps',
+            icon: Icons.public,
+            variant: AppButtonVariant.secondary,
+            loading: _fetchingElevasiApi,
+            onPressed: hasCoords ? () => _fetchElevasiApi(entry) : null,
+          ),
+        ],
+      ],
+    );
   }
 
   Future<void> _handleEdit(PendataanEntry entry) async {
@@ -186,7 +259,7 @@ class _DetailScreenState extends State<DetailScreen> {
                                   ? null
                                   : '${entry.latitude!.toStringAsFixed(5)}, ${entry.longitude!.toStringAsFixed(5)}'
                                       '${entry.gpsAccuracyMeter != null ? '\n±${entry.gpsAccuracyMeter!.toStringAsFixed(0)} m' : ''}',
-                              'Ketinggian',
+                              'Elevasi GPS',
                               entry.ketinggianMdpl != null ? '${entry.ketinggianMdpl!.toStringAsFixed(0)} mdpl' : null,
                             ),
                             if (entry.koordinatBelumLengkap)
@@ -195,6 +268,8 @@ class _DetailScreenState extends State<DetailScreen> {
                                 child: Text('📍 Lokasi belum lengkap — perlu dilengkapi lewat Edit.',
                                     style: AppTypography.bodySm.copyWith(color: AppColors.redWarn)),
                               ),
+                            const Divider(height: AppSpacing.xl),
+                            _buildElevasiApiBlock(entry),
                           ]),
 
                           _section('Data Individu', [

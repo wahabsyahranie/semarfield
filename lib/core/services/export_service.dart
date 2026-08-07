@@ -14,9 +14,10 @@ class ExportFailure implements Exception {
 
 /// Membangun satu file .zip berisi:
 ///   data_pendataan.xlsx   — 1 baris = 1 entri, semua field jadi kolom
-///   peta_lokasi.kml       — semua entri berkoordinat, siap dibuka di
-///                           Google Earth / Google My Maps
-///   foto/<folder per entri>/...   — foto asli, dikelompokkan per entri
+///   peta_lokasi.kml       — siap dibuka di Google Earth: tiap titik
+///                           pakai ikon pohon hijau, foto ikut muncul
+///                           kalau entrinya SUDAH tersinkron ke Firebase
+///   foto/<folder per entri>/...   — SEMUA foto asli, dikelompokkan per entri
 ///
 /// Kenapa dipisah gini (bukan foto ditempel ke dalam Excel): spreadsheet
 /// tetap ringan & gampang dianalisis ulang (Excel/Sheets/SPSS/R), sementara
@@ -61,7 +62,8 @@ class ExportService {
 
     const headers = [
       'No', 'Titik Pengamatan', 'Tanggal Pengamatan', 'Latitude', 'Longitude',
-      'Akurasi GPS (m)', 'Koordinat Belum Lengkap', 'Ketinggian (mdpl)',
+      'Akurasi GPS (m)', 'Koordinat Belum Lengkap', 'Elevasi GPS (mdpl)',
+      'Elevasi API Maps (mdpl)',
       'Spesies', 'Panjang Kantong (cm)', 'Diameter Kantong (cm)',
       'Tinggi Tanaman (cm)', 'Panjang Daun (cm)', 'Warna Kantong',
       'Jumlah Individu', 'pH Tanah', 'Kelembapan Tanah (%)',
@@ -90,6 +92,7 @@ class ExportService {
         e.gpsAccuracyMeter != null ? DoubleCellValue(e.gpsAccuracyMeter!) : TextCellValue('-'),
         TextCellValue(e.koordinatBelumLengkap ? 'Ya' : 'Tidak'),
         e.ketinggianMdpl != null ? DoubleCellValue(e.ketinggianMdpl!) : TextCellValue('-'),
+        e.elevasiApiMeter != null ? DoubleCellValue(e.elevasiApiMeter!) : TextCellValue('-'),
         TextCellValue(e.spesies != null ? fmt.capitalizeFirst(e.spesies!) : '-'),
         e.panjangKantongCm != null ? DoubleCellValue(e.panjangKantongCm!) : TextCellValue('-'),
         e.diameterKantongCm != null ? DoubleCellValue(e.diameterKantongCm!) : TextCellValue('-'),
@@ -117,16 +120,21 @@ class ExportService {
     return xlsxFile;
   }
 
-  /// KML — format standar Google Earth/Google My Maps. Cuma entri yang
-  /// punya koordinat (latitude & longitude terisi) yang dimasukkan;
-  /// entri dengan "koordinat belum lengkap" dilewati diam-diam karena
-  /// memang tidak ada titik yang bisa digambar di peta.
   Future<File> _buildKml(List<PendataanEntry> entries, Directory exportDir) async {
     final buffer = StringBuffer();
     buffer.writeln('<?xml version="1.0" encoding="UTF-8"?>');
     buffer.writeln('<kml xmlns="http://www.opengis.net/kml/2.2">');
+    // Sengaja tidak diberi <name> pada <Document>. CATATAN JUJUR: ini
+    // TIDAK menghilangkan folder pembungkus di Google Earth WEB — sudah
+    // diuji langsung, foldernya tetap muncul (dinamai dari NAMA FILE
+    // "peta_lokasi", bukan dari isi KML). Earth Web memang selalu
+    // membungkus setiap file KML yang di-import sebagai satu layer/
+    // folder tersendiri di panel Map Contents — ini perilaku platform
+    // Earth Web sendiri, di luar kendali konten KML kita. Tag <name>
+    // tetap dihilangkan karena tidak merugikan dan relevan untuk
+    // Google Earth PRO (desktop) / Google My Maps yang caranya membaca
+    // KML sedikit berbeda.
     buffer.writeln('<Document>');
-    buffer.writeln('<name>${_xmlEscape('SemarField - Data Pendataan Kantong Semar')}</name>');
 
     for (final e in entries) {
       if (e.latitude == null || e.longitude == null) continue;
@@ -134,11 +142,22 @@ class ExportService {
       final speciesLabel = e.spesies != null ? fmt.capitalizeFirst(e.spesies!) : 'Belum teridentifikasi';
       final title = '${e.titikPengamatan} — $speciesLabel';
 
+      // Foto wakil (kantong pertama) — HANYA dipakai kalau sudah
+      // tersinkron (punya uploadedUrl). Kalau belum, tidak ada <img>
+      // sama sekali, bukan ditampilkan rusak/kosong.
+      final photos = await _repo.getPhotosForEntry(e.id);
+      final kantongWithUrl = photos.where((ph) => ph.jenisFoto == 'kantong' && ph.uploadedUrl != null);
+      final photoUrl = kantongWithUrl.isNotEmpty ? kantongWithUrl.first.uploadedUrl : null;
+
       final desc = StringBuffer();
+      if (photoUrl != null) {
+        desc.write('<img src="${_xmlEscape(photoUrl)}" width="320"/><br/>');
+      }
       desc.write('<b>Titik Pengamatan:</b> ${e.titikPengamatan}<br/>');
       desc.write('<b>Spesies:</b> $speciesLabel<br/>');
       desc.write('<b>Tanggal Pengamatan:</b> ${_formatDateTime(e.tanggalPengamatan)}<br/>');
-      if (e.ketinggianMdpl != null) desc.write('<b>Ketinggian:</b> ${e.ketinggianMdpl} mdpl<br/>');
+      if (e.ketinggianMdpl != null) desc.write('<b>Elevasi GPS:</b> ${e.ketinggianMdpl} mdpl<br/>');
+      if (e.elevasiApiMeter != null) desc.write('<b>Elevasi API Maps:</b> ${e.elevasiApiMeter!.toStringAsFixed(1)} mdpl<br/>');
       if (e.gpsAccuracyMeter != null) desc.write('<b>Akurasi GPS:</b> ±${e.gpsAccuracyMeter!.toStringAsFixed(1)} m<br/>');
       if (e.panjangKantongCm != null) desc.write('<b>Panjang Kantong:</b> ${e.panjangKantongCm} cm<br/>');
       if (e.diameterKantongCm != null) desc.write('<b>Diameter Kantong:</b> ${e.diameterKantongCm!.toStringAsFixed(2)} cm<br/>');

@@ -526,7 +526,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: AppSpacing.sm),
                     AppButton(
-                      label: 'Export Semua Data',
+                      label: 'Export Semua Data (Excel + KML + Foto)',
                       icon: Icons.ios_share,
                       variant: AppButtonVariant.secondary,
                       loading: _exporting,

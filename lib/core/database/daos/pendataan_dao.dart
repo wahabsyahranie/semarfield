@@ -18,6 +18,15 @@ class PendataanDao extends DatabaseAccessor<AppDatabase> with _$PendataanDaoMixi
         .watch();
   }
 
+  /// Sama seperti watchAllEntries tapi sekali ambil (bukan stream) —
+  /// dipakai fitur export, yang cuma butuh snapshot data saat itu,
+  /// bukan terus mendengarkan perubahan.
+  Future<List<PendataanEntry>> getAllEntries() {
+    return (select(pendataanEntries)
+          ..orderBy([(t) => OrderingTerm.desc(t.createdAt)]))
+        .get();
+  }
+
   /// Satu entri, reaktif — dipakai DetailScreen supaya otomatis
   /// ter-update begitu entri diedit, disinkronkan, atau dihapus,
   /// tanpa perlu Navigator.pop lalu buka lagi.
@@ -101,6 +110,15 @@ class PendataanDao extends DatabaseAccessor<AppDatabase> with _$PendataanDaoMixi
   }
 
   Future<int> deleteAllEntries() => delete(pendataanEntries).go();
+
+  /// Dipanggil dari Detail screen setelah berhasil ambil elevasi dari
+  /// Google Maps Elevation API. Pakai .write() (partial update) —
+  /// BUKAN .replace() — supaya cuma kolom ini yang tersentuh, field
+  /// lain di baris yang sama tidak ikut terpengaruh.
+  Future<void> updateElevasiApi(int id, double elevasi) {
+    return (update(pendataanEntries)..where((t) => t.id.equals(id)))
+        .write(PendataanEntriesCompanion(elevasiApiMeter: Value(elevasi)));
+  }
 
   // --- Photos ---
 

@@ -104,6 +104,17 @@ class $PendataanEntriesTable extends PendataanEntries
     type: DriftSqlType.double,
     requiredDuringInsert: false,
   );
+  static const VerificationMeta _elevasiApiMeterMeta = const VerificationMeta(
+    'elevasiApiMeter',
+  );
+  @override
+  late final GeneratedColumn<double> elevasiApiMeter = GeneratedColumn<double>(
+    'elevasi_api_meter',
+    aliasedName,
+    true,
+    type: DriftSqlType.double,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _spesiesMeta = const VerificationMeta(
     'spesies',
   );
@@ -294,6 +305,7 @@ class $PendataanEntriesTable extends PendataanEntries
     gpsAccuracyMeter,
     koordinatBelumLengkap,
     ketinggianMdpl,
+    elevasiApiMeter,
     spesies,
     panjangKantongCm,
     diameterKantongCm,
@@ -384,6 +396,15 @@ class $PendataanEntriesTable extends PendataanEntries
         ketinggianMdpl.isAcceptableOrUnknown(
           data['ketinggian_mdpl']!,
           _ketinggianMdplMeta,
+        ),
+      );
+    }
+    if (data.containsKey('elevasi_api_meter')) {
+      context.handle(
+        _elevasiApiMeterMeta,
+        elevasiApiMeter.isAcceptableOrUnknown(
+          data['elevasi_api_meter']!,
+          _elevasiApiMeterMeta,
         ),
       );
     }
@@ -557,6 +578,10 @@ class $PendataanEntriesTable extends PendataanEntries
         DriftSqlType.double,
         data['${effectivePrefix}ketinggian_mdpl'],
       ),
+      elevasiApiMeter: attachedDatabase.typeMapping.read(
+        DriftSqlType.double,
+        data['${effectivePrefix}elevasi_api_meter'],
+      ),
       spesies: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}spesies'],
@@ -639,6 +664,7 @@ class PendataanEntry extends DataClass implements Insertable<PendataanEntry> {
   final double? gpsAccuracyMeter;
   final bool koordinatBelumLengkap;
   final double? ketinggianMdpl;
+  final double? elevasiApiMeter;
   final String? spesies;
   final double? panjangKantongCm;
   final double? diameterKantongCm;
@@ -664,6 +690,7 @@ class PendataanEntry extends DataClass implements Insertable<PendataanEntry> {
     this.gpsAccuracyMeter,
     required this.koordinatBelumLengkap,
     this.ketinggianMdpl,
+    this.elevasiApiMeter,
     this.spesies,
     this.panjangKantongCm,
     this.diameterKantongCm,
@@ -699,6 +726,9 @@ class PendataanEntry extends DataClass implements Insertable<PendataanEntry> {
     map['koordinat_belum_lengkap'] = Variable<bool>(koordinatBelumLengkap);
     if (!nullToAbsent || ketinggianMdpl != null) {
       map['ketinggian_mdpl'] = Variable<double>(ketinggianMdpl);
+    }
+    if (!nullToAbsent || elevasiApiMeter != null) {
+      map['elevasi_api_meter'] = Variable<double>(elevasiApiMeter);
     }
     if (!nullToAbsent || spesies != null) {
       map['spesies'] = Variable<String>(spesies);
@@ -763,6 +793,9 @@ class PendataanEntry extends DataClass implements Insertable<PendataanEntry> {
       ketinggianMdpl: ketinggianMdpl == null && nullToAbsent
           ? const Value.absent()
           : Value(ketinggianMdpl),
+      elevasiApiMeter: elevasiApiMeter == null && nullToAbsent
+          ? const Value.absent()
+          : Value(elevasiApiMeter),
       spesies: spesies == null && nullToAbsent
           ? const Value.absent()
           : Value(spesies),
@@ -826,6 +859,7 @@ class PendataanEntry extends DataClass implements Insertable<PendataanEntry> {
         json['koordinatBelumLengkap'],
       ),
       ketinggianMdpl: serializer.fromJson<double?>(json['ketinggianMdpl']),
+      elevasiApiMeter: serializer.fromJson<double?>(json['elevasiApiMeter']),
       spesies: serializer.fromJson<String?>(json['spesies']),
       panjangKantongCm: serializer.fromJson<double?>(json['panjangKantongCm']),
       diameterKantongCm: serializer.fromJson<double?>(
@@ -862,6 +896,7 @@ class PendataanEntry extends DataClass implements Insertable<PendataanEntry> {
       'gpsAccuracyMeter': serializer.toJson<double?>(gpsAccuracyMeter),
       'koordinatBelumLengkap': serializer.toJson<bool>(koordinatBelumLengkap),
       'ketinggianMdpl': serializer.toJson<double?>(ketinggianMdpl),
+      'elevasiApiMeter': serializer.toJson<double?>(elevasiApiMeter),
       'spesies': serializer.toJson<String?>(spesies),
       'panjangKantongCm': serializer.toJson<double?>(panjangKantongCm),
       'diameterKantongCm': serializer.toJson<double?>(diameterKantongCm),
@@ -894,6 +929,7 @@ class PendataanEntry extends DataClass implements Insertable<PendataanEntry> {
     Value<double?> gpsAccuracyMeter = const Value.absent(),
     bool? koordinatBelumLengkap,
     Value<double?> ketinggianMdpl = const Value.absent(),
+    Value<double?> elevasiApiMeter = const Value.absent(),
     Value<String?> spesies = const Value.absent(),
     Value<double?> panjangKantongCm = const Value.absent(),
     Value<double?> diameterKantongCm = const Value.absent(),
@@ -923,6 +959,9 @@ class PendataanEntry extends DataClass implements Insertable<PendataanEntry> {
     ketinggianMdpl: ketinggianMdpl.present
         ? ketinggianMdpl.value
         : this.ketinggianMdpl,
+    elevasiApiMeter: elevasiApiMeter.present
+        ? elevasiApiMeter.value
+        : this.elevasiApiMeter,
     spesies: spesies.present ? spesies.value : this.spesies,
     panjangKantongCm: panjangKantongCm.present
         ? panjangKantongCm.value
@@ -978,6 +1017,9 @@ class PendataanEntry extends DataClass implements Insertable<PendataanEntry> {
       ketinggianMdpl: data.ketinggianMdpl.present
           ? data.ketinggianMdpl.value
           : this.ketinggianMdpl,
+      elevasiApiMeter: data.elevasiApiMeter.present
+          ? data.elevasiApiMeter.value
+          : this.elevasiApiMeter,
       spesies: data.spesies.present ? data.spesies.value : this.spesies,
       panjangKantongCm: data.panjangKantongCm.present
           ? data.panjangKantongCm.value
@@ -1032,6 +1074,7 @@ class PendataanEntry extends DataClass implements Insertable<PendataanEntry> {
           ..write('gpsAccuracyMeter: $gpsAccuracyMeter, ')
           ..write('koordinatBelumLengkap: $koordinatBelumLengkap, ')
           ..write('ketinggianMdpl: $ketinggianMdpl, ')
+          ..write('elevasiApiMeter: $elevasiApiMeter, ')
           ..write('spesies: $spesies, ')
           ..write('panjangKantongCm: $panjangKantongCm, ')
           ..write('diameterKantongCm: $diameterKantongCm, ')
@@ -1062,6 +1105,7 @@ class PendataanEntry extends DataClass implements Insertable<PendataanEntry> {
     gpsAccuracyMeter,
     koordinatBelumLengkap,
     ketinggianMdpl,
+    elevasiApiMeter,
     spesies,
     panjangKantongCm,
     diameterKantongCm,
@@ -1091,6 +1135,7 @@ class PendataanEntry extends DataClass implements Insertable<PendataanEntry> {
           other.gpsAccuracyMeter == this.gpsAccuracyMeter &&
           other.koordinatBelumLengkap == this.koordinatBelumLengkap &&
           other.ketinggianMdpl == this.ketinggianMdpl &&
+          other.elevasiApiMeter == this.elevasiApiMeter &&
           other.spesies == this.spesies &&
           other.panjangKantongCm == this.panjangKantongCm &&
           other.diameterKantongCm == this.diameterKantongCm &&
@@ -1118,6 +1163,7 @@ class PendataanEntriesCompanion extends UpdateCompanion<PendataanEntry> {
   final Value<double?> gpsAccuracyMeter;
   final Value<bool> koordinatBelumLengkap;
   final Value<double?> ketinggianMdpl;
+  final Value<double?> elevasiApiMeter;
   final Value<String?> spesies;
   final Value<double?> panjangKantongCm;
   final Value<double?> diameterKantongCm;
@@ -1143,6 +1189,7 @@ class PendataanEntriesCompanion extends UpdateCompanion<PendataanEntry> {
     this.gpsAccuracyMeter = const Value.absent(),
     this.koordinatBelumLengkap = const Value.absent(),
     this.ketinggianMdpl = const Value.absent(),
+    this.elevasiApiMeter = const Value.absent(),
     this.spesies = const Value.absent(),
     this.panjangKantongCm = const Value.absent(),
     this.diameterKantongCm = const Value.absent(),
@@ -1169,6 +1216,7 @@ class PendataanEntriesCompanion extends UpdateCompanion<PendataanEntry> {
     this.gpsAccuracyMeter = const Value.absent(),
     this.koordinatBelumLengkap = const Value.absent(),
     this.ketinggianMdpl = const Value.absent(),
+    this.elevasiApiMeter = const Value.absent(),
     this.spesies = const Value.absent(),
     this.panjangKantongCm = const Value.absent(),
     this.diameterKantongCm = const Value.absent(),
@@ -1196,6 +1244,7 @@ class PendataanEntriesCompanion extends UpdateCompanion<PendataanEntry> {
     Expression<double>? gpsAccuracyMeter,
     Expression<bool>? koordinatBelumLengkap,
     Expression<double>? ketinggianMdpl,
+    Expression<double>? elevasiApiMeter,
     Expression<String>? spesies,
     Expression<double>? panjangKantongCm,
     Expression<double>? diameterKantongCm,
@@ -1223,6 +1272,7 @@ class PendataanEntriesCompanion extends UpdateCompanion<PendataanEntry> {
       if (koordinatBelumLengkap != null)
         'koordinat_belum_lengkap': koordinatBelumLengkap,
       if (ketinggianMdpl != null) 'ketinggian_mdpl': ketinggianMdpl,
+      if (elevasiApiMeter != null) 'elevasi_api_meter': elevasiApiMeter,
       if (spesies != null) 'spesies': spesies,
       if (panjangKantongCm != null) 'panjang_kantong_cm': panjangKantongCm,
       if (diameterKantongCm != null) 'diameter_kantong_cm': diameterKantongCm,
@@ -1253,6 +1303,7 @@ class PendataanEntriesCompanion extends UpdateCompanion<PendataanEntry> {
     Value<double?>? gpsAccuracyMeter,
     Value<bool>? koordinatBelumLengkap,
     Value<double?>? ketinggianMdpl,
+    Value<double?>? elevasiApiMeter,
     Value<String?>? spesies,
     Value<double?>? panjangKantongCm,
     Value<double?>? diameterKantongCm,
@@ -1280,6 +1331,7 @@ class PendataanEntriesCompanion extends UpdateCompanion<PendataanEntry> {
       koordinatBelumLengkap:
           koordinatBelumLengkap ?? this.koordinatBelumLengkap,
       ketinggianMdpl: ketinggianMdpl ?? this.ketinggianMdpl,
+      elevasiApiMeter: elevasiApiMeter ?? this.elevasiApiMeter,
       spesies: spesies ?? this.spesies,
       panjangKantongCm: panjangKantongCm ?? this.panjangKantongCm,
       diameterKantongCm: diameterKantongCm ?? this.diameterKantongCm,
@@ -1329,6 +1381,9 @@ class PendataanEntriesCompanion extends UpdateCompanion<PendataanEntry> {
     }
     if (ketinggianMdpl.present) {
       map['ketinggian_mdpl'] = Variable<double>(ketinggianMdpl.value);
+    }
+    if (elevasiApiMeter.present) {
+      map['elevasi_api_meter'] = Variable<double>(elevasiApiMeter.value);
     }
     if (spesies.present) {
       map['spesies'] = Variable<String>(spesies.value);
@@ -1396,6 +1451,7 @@ class PendataanEntriesCompanion extends UpdateCompanion<PendataanEntry> {
           ..write('gpsAccuracyMeter: $gpsAccuracyMeter, ')
           ..write('koordinatBelumLengkap: $koordinatBelumLengkap, ')
           ..write('ketinggianMdpl: $ketinggianMdpl, ')
+          ..write('elevasiApiMeter: $elevasiApiMeter, ')
           ..write('spesies: $spesies, ')
           ..write('panjangKantongCm: $panjangKantongCm, ')
           ..write('diameterKantongCm: $diameterKantongCm, ')
@@ -2346,6 +2402,7 @@ typedef $$PendataanEntriesTableCreateCompanionBuilder =
       Value<double?> gpsAccuracyMeter,
       Value<bool> koordinatBelumLengkap,
       Value<double?> ketinggianMdpl,
+      Value<double?> elevasiApiMeter,
       Value<String?> spesies,
       Value<double?> panjangKantongCm,
       Value<double?> diameterKantongCm,
@@ -2373,6 +2430,7 @@ typedef $$PendataanEntriesTableUpdateCompanionBuilder =
       Value<double?> gpsAccuracyMeter,
       Value<bool> koordinatBelumLengkap,
       Value<double?> ketinggianMdpl,
+      Value<double?> elevasiApiMeter,
       Value<String?> spesies,
       Value<double?> panjangKantongCm,
       Value<double?> diameterKantongCm,
@@ -2470,6 +2528,11 @@ class $$PendataanEntriesTableFilterComposer
 
   ColumnFilters<double> get ketinggianMdpl => $composableBuilder(
     column: $table.ketinggianMdpl,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<double> get elevasiApiMeter => $composableBuilder(
+    column: $table.elevasiApiMeter,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -2628,6 +2691,11 @@ class $$PendataanEntriesTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<double> get elevasiApiMeter => $composableBuilder(
+    column: $table.elevasiApiMeter,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get spesies => $composableBuilder(
     column: $table.spesies,
     builder: (column) => ColumnOrderings(column),
@@ -2749,6 +2817,11 @@ class $$PendataanEntriesTableAnnotationComposer
 
   GeneratedColumn<double> get ketinggianMdpl => $composableBuilder(
     column: $table.ketinggianMdpl,
+    builder: (column) => column,
+  );
+
+  GeneratedColumn<double> get elevasiApiMeter => $composableBuilder(
+    column: $table.elevasiApiMeter,
     builder: (column) => column,
   );
 
@@ -2888,6 +2961,7 @@ class $$PendataanEntriesTableTableManager
                 Value<double?> gpsAccuracyMeter = const Value.absent(),
                 Value<bool> koordinatBelumLengkap = const Value.absent(),
                 Value<double?> ketinggianMdpl = const Value.absent(),
+                Value<double?> elevasiApiMeter = const Value.absent(),
                 Value<String?> spesies = const Value.absent(),
                 Value<double?> panjangKantongCm = const Value.absent(),
                 Value<double?> diameterKantongCm = const Value.absent(),
@@ -2913,6 +2987,7 @@ class $$PendataanEntriesTableTableManager
                 gpsAccuracyMeter: gpsAccuracyMeter,
                 koordinatBelumLengkap: koordinatBelumLengkap,
                 ketinggianMdpl: ketinggianMdpl,
+                elevasiApiMeter: elevasiApiMeter,
                 spesies: spesies,
                 panjangKantongCm: panjangKantongCm,
                 diameterKantongCm: diameterKantongCm,
@@ -2940,6 +3015,7 @@ class $$PendataanEntriesTableTableManager
                 Value<double?> gpsAccuracyMeter = const Value.absent(),
                 Value<bool> koordinatBelumLengkap = const Value.absent(),
                 Value<double?> ketinggianMdpl = const Value.absent(),
+                Value<double?> elevasiApiMeter = const Value.absent(),
                 Value<String?> spesies = const Value.absent(),
                 Value<double?> panjangKantongCm = const Value.absent(),
                 Value<double?> diameterKantongCm = const Value.absent(),
@@ -2965,6 +3041,7 @@ class $$PendataanEntriesTableTableManager
                 gpsAccuracyMeter: gpsAccuracyMeter,
                 koordinatBelumLengkap: koordinatBelumLengkap,
                 ketinggianMdpl: ketinggianMdpl,
+                elevasiApiMeter: elevasiApiMeter,
                 spesies: spesies,
                 panjangKantongCm: panjangKantongCm,
                 diameterKantongCm: diameterKantongCm,

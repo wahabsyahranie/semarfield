@@ -31,6 +31,9 @@ dependencies:
   firebase_storage: ^13.0.0
   connectivity_plus: ^6.0.5
 
+  # --- Elevasi Google Maps API ---
+  http: ^1.2.2
+
   # --- Export data (Excel + ZIP foto) ---
   excel: ^4.0.6
   archive: ^3.6.1

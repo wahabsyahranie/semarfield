@@ -15,7 +15,14 @@ class PendataanEntries extends Table {
   RealColumn get gpsAccuracyMeter => real().nullable()();
   BoolColumn get koordinatBelumLengkap =>
       boolean().withDefault(const Constant(false))();
-  RealColumn get ketinggianMdpl => real().nullable()();
+  RealColumn get ketinggianMdpl => real().nullable()(); // dari GPS chip HP
+
+  // Elevasi dari Google Maps Elevation API — TIDAK PERNAH diisi lewat
+  // form tambah/edit, cuma lewat tombol khusus di layar Detail (butuh
+  // internet). Otomatis di-reset ke null kalau koordinat entry diedit
+  // (lihat PendataanRepository.perbaruiEntry) karena elevasi lama jadi
+  // tidak relevan lagi untuk lokasi yang baru.
+  RealColumn get elevasiApiMeter => real().nullable()();
 
   // --- Data individu ---
   TextColumn get spesies => text().nullable()();

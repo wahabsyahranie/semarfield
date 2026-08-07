@@ -10,6 +10,8 @@ class PendataanRepository {
 
   Stream<List<PendataanEntry>> watchAllEntries() => _dao.watchAllEntries();
 
+  Future<List<PendataanEntry>> getAllEntries() => _dao.getAllEntries();
+
   Stream<int> watchTotalCount() => _dao.watchTotalCount();
 
   Stream<int> watchPendingCount() => _dao.watchCountByStatus('pending');
@@ -90,6 +92,13 @@ class PendataanRepository {
     double? kelembapanUdaraPersen,
     double? suhuUdaraCelsius,
     String? deskripsiHabitat,
+    // Elevasi dari Google Maps Elevation API TIDAK diinput lewat form —
+    // parameter ini murni untuk PRESERVE nilai lama saat field lain
+    // diedit (karena updateEntry pakai .replace(), yang butuh SEMUA
+    // kolom eksplisit). Pemanggil (form) yang menentukan: kirim ulang
+    // nilai lama kalau koordinat tidak berubah, atau null kalau
+    // koordinat berubah (karena elevasi lama jadi tidak relevan lagi).
+    double? elevasiApiMeter,
   }) {
     return _dao.updateEntry(PendataanEntriesCompanion(
       id: Value(id),
@@ -112,9 +121,15 @@ class PendataanRepository {
       kelembapanUdaraPersen: Value(kelembapanUdaraPersen),
       suhuUdaraCelsius: Value(suhuUdaraCelsius),
       deskripsiHabitat: Value(deskripsiHabitat),
+      elevasiApiMeter: Value(elevasiApiMeter),
       syncStatus: const Value('pending'),
     ));
   }
+
+  /// Simpan hasil fetch dari Google Maps Elevation API — dipanggil
+  /// dari Detail screen saja, tidak pernah dari form.
+  Future<void> updateElevasiApi(int id, double elevasi) =>
+      _dao.updateElevasiApi(id, elevasi);
 
   Future<void> hapusFoto(int photoId) => _dao.deletePhoto(photoId);
 

@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'dart:io';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -15,9 +14,7 @@ import '../pendataan/detail_screen.dart';
 import '../pendataan/pendataan_repository.dart';
 import '../profile/profile_repository.dart';
 import '../profile/profile_screen.dart';
-import '../../core/services/connectivity_service.dart';
 import '../../core/services/sync_service.dart';
-import '../../core/utils/snack.dart';
 import '../../core/utils/text_format.dart';
 
 enum _StatusFilter { semua, pending, synced }
@@ -37,9 +34,7 @@ class _HomeScreenState extends State<HomeScreen> {
   final _repo = PendataanRepository();
   final _profileRepo = ProfileRepository();
   final _searchCtrl = TextEditingController();
-  final _connectivity = ConnectivityService();
   final _syncService = SyncService();
-  StreamSubscription<bool>? _connectivitySub;
   _StatusFilter _filter = _StatusFilter.semua;
   String _query = '';
 
@@ -48,30 +43,19 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     // Sekali di awal: kalau profil lokal masih kosong (HP baru / abis
     // install ulang) tapi akun ini sudah pernah isi profil di HP lain,
-    // tarik dari Firestore supaya nama/HP/foto langsung muncul.
+    // tarik dari Firestore supaya nama/HP/foto langsung muncul. Ini
+    // BUKAN sync data pendataan — cuma tarik profil, sekali, aman.
     _syncService.pullProfileIfNeeded();
 
-    // Auto-sync diam-diam begitu HP kembali online — user tidak perlu
-    // buka Profile & tekan tombol manual tiap kali. Kalau gagal, cukup
-    // diabaikan; nanti dicoba lagi di perubahan konektivitas berikutnya
-    // atau saat user sync manual dari Profile.
-    _connectivitySub = _connectivity.onOnline.listen((isOnline) async {
-      if (!isOnline || !mounted) return;
-      try {
-        final result = await _syncService.syncAll();
-        if (result.entriesSynced > 0 && mounted) {
-          showSnack(context, '${result.entriesSynced} data otomatis tersinkron.');
-        }
-      } catch (_) {
-        // Diam-diam gagal — tidak mengganggu user, akan dicoba lagi nanti.
-      }
-    });
+    // SENGAJA tidak ada auto-sync data pendataan di sini lagi. Sync
+    // sekarang cuma lewat satu jalur: tombol manual di Profile —
+    // supaya user selalu tahu & mengontrol kapan data naik ke
+    // Firebase, tidak diam-diam jalan sendiri di background.
   }
 
   @override
   void dispose() {
     _searchCtrl.dispose();
-    _connectivitySub?.cancel();
     super.dispose();
   }
 
@@ -83,7 +67,8 @@ class _HomeScreenState extends State<HomeScreen> {
         _StatusFilter.synced => e.syncStatus == 'synced',
       };
       final q = _query.trim().toLowerCase();
-      final matchQuery = q.isEmpty ||
+      final matchQuery =
+          q.isEmpty ||
           e.titikPengamatan.toLowerCase().contains(q) ||
           (e.spesies?.toLowerCase().contains(q) ?? false);
       return matchStatus && matchQuery;
@@ -132,15 +117,15 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openProfilePlaceholder() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ProfileScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const ProfileScreen()));
   }
 
   void _openAddDataEntry() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const AddDataFormScreen()),
-    );
+    Navigator.of(
+      context,
+    ).push(MaterialPageRoute(builder: (_) => const AddDataFormScreen()));
   }
 
   @override
@@ -148,18 +133,19 @@ class _HomeScreenState extends State<HomeScreen> {
     final user = FirebaseAuth.instance.currentUser;
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
-      value: SystemUiOverlayStyle.light, // ikon jam/baterai jadi putih, kontras dgn hijau
+      value: SystemUiOverlayStyle
+          .light, // ikon jam/baterai jadi putih, kontras dgn hijau
       child: Scaffold(
-      backgroundColor: AppColors.parchment,
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: AppColors.wine,
-        onPressed: _openAddDataEntry,
-        child: const Icon(Icons.add, color: Colors.white),
-      ),
-      body: Column(
-        children: [
-          _buildAppBar(context, user),
-          Expanded(
+        backgroundColor: AppColors.parchment,
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: AppColors.wine,
+          onPressed: _openAddDataEntry,
+          child: const Icon(Icons.add, color: Colors.white),
+        ),
+        body: Column(
+          children: [
+            _buildAppBar(context, user),
+            Expanded(
               child: StreamBuilder<List<PendataanEntry>>(
                 stream: _repo.watchAllEntries(),
                 builder: (context, snapshot) {
@@ -168,22 +154,31 @@ class _HomeScreenState extends State<HomeScreen> {
 
                   return ListView(
                     padding: EdgeInsets.fromLTRB(
-                        AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, 100 + MediaQuery.of(context).padding.bottom),
+                      AppSpacing.lg,
+                      AppSpacing.lg,
+                      AppSpacing.lg,
+                      100 + MediaQuery.of(context).padding.bottom,
+                    ),
                     children: [
                       _buildStatRow(),
                       const SizedBox(height: AppSpacing.lg),
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
-                          const Text('DATA TERBARU',
-                              style: TextStyle(
-                                fontFamily: 'Inter',
-                                fontWeight: FontWeight.w700,
-                                fontSize: 12,
-                                letterSpacing: 0.5,
-                                color: AppColors.forestDeep,
-                              )),
-                          Text('${filtered.length} entri', style: AppTypography.bodySm),
+                          const Text(
+                            'DATA TERBARU',
+                            style: TextStyle(
+                              fontFamily: 'Inter',
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                              letterSpacing: 0.5,
+                              color: AppColors.forestDeep,
+                            ),
+                          ),
+                          Text(
+                            '${filtered.length} entri',
+                            style: AppTypography.bodySm,
+                          ),
                         ],
                       ),
                       const SizedBox(height: AppSpacing.md),
@@ -221,11 +216,29 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildStatRow() {
     return Row(
       children: [
-        Expanded(child: _StatCard(label: 'Total Data', stream: _repo.watchTotalCount(), color: AppColors.forestDeep)),
+        Expanded(
+          child: _StatCard(
+            label: 'Total Data',
+            stream: _repo.watchTotalCount(),
+            color: AppColors.forestDeep,
+          ),
+        ),
         const SizedBox(width: AppSpacing.sm),
-        Expanded(child: _StatCard(label: 'Pending Sync', stream: _repo.watchPendingCount(), color: AppColors.amber)),
+        Expanded(
+          child: _StatCard(
+            label: 'Pending Sync',
+            stream: _repo.watchPendingCount(),
+            color: AppColors.amber,
+          ),
+        ),
         const SizedBox(width: AppSpacing.sm),
-        Expanded(child: _StatCard(label: 'Sudah Sync', stream: _repo.watchSyncedCount(), color: AppColors.greenOk)),
+        Expanded(
+          child: _StatCard(
+            label: 'Sudah Sync',
+            stream: _repo.watchSyncedCount(),
+            color: AppColors.greenOk,
+          ),
+        ),
       ],
     );
   }
@@ -243,127 +256,171 @@ class _HomeScreenState extends State<HomeScreen> {
       child: SafeArea(
         bottom: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.md, AppSpacing.lg, AppSpacing.lg),
+          padding: const EdgeInsets.fromLTRB(
+            AppSpacing.lg,
+            AppSpacing.md,
+            AppSpacing.lg,
+            AppSpacing.lg,
+          ),
           child: Column(
             children: [
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  const Text('Beranda',
-                      style: TextStyle(
-                        fontFamily: 'Fraunces',
-                        fontWeight: FontWeight.w600,
-                        fontSize: 19,
-                    color: AppColors.parchment,
-                  )),
-              InkWell(
-                onTap: _openProfilePlaceholder,
-                borderRadius: AppRadius.pillR,
-                child: StreamBuilder<UserProfile?>(
-                  stream: _profileRepo.watchProfile(),
-                  builder: (context, snapshot) {
-                    final profile = snapshot.data;
-                    final displayName = (profile?.displayName?.trim().isNotEmpty ?? false)
-                        ? profile!.displayName!
-                        : (user?.displayName ?? 'Pengguna');
-                    final firstName = displayName.split(' ').first;
-                    final initialChar = displayName.isNotEmpty ? displayName[0].toUpperCase() : '?';
+                  const Text(
+                    'Beranda',
+                    style: TextStyle(
+                      fontFamily: 'Fraunces',
+                      fontWeight: FontWeight.w600,
+                      fontSize: 19,
+                      color: AppColors.parchment,
+                    ),
+                  ),
+                  InkWell(
+                    onTap: _openProfilePlaceholder,
+                    borderRadius: AppRadius.pillR,
+                    child: StreamBuilder<UserProfile?>(
+                      stream: _profileRepo.watchProfile(),
+                      builder: (context, snapshot) {
+                        final profile = snapshot.data;
+                        final displayName =
+                            (profile?.displayName?.trim().isNotEmpty ?? false)
+                            ? profile!.displayName!
+                            : (user?.displayName ?? 'Pengguna');
+                        final firstName = displayName.split(' ').first;
+                        final initialChar = displayName.isNotEmpty
+                            ? displayName[0].toUpperCase()
+                            : '?';
 
-                    ImageProvider? avatarImage;
-                    if (profile?.avatarLocalPath != null) {
-                      avatarImage = FileImage(File(profile!.avatarLocalPath!));
-                    } else if (profile?.avatarRemoteUrl != null) {
-                      avatarImage = NetworkImage(profile!.avatarRemoteUrl!);
-                    } else if (user?.photoURL != null) {
-                      avatarImage = NetworkImage(user!.photoURL!);
-                    }
+                        ImageProvider? avatarImage;
+                        if (profile?.avatarLocalPath != null) {
+                          avatarImage = FileImage(
+                            File(profile!.avatarLocalPath!),
+                          );
+                        } else if (profile?.avatarRemoteUrl != null) {
+                          avatarImage = NetworkImage(profile!.avatarRemoteUrl!);
+                        } else if (user?.photoURL != null) {
+                          avatarImage = NetworkImage(user!.photoURL!);
+                        }
 
-                    return Container(
-                      padding: const EdgeInsets.fromLTRB(5, 5, 10, 5),
+                        return Container(
+                          padding: const EdgeInsets.fromLTRB(5, 5, 10, 5),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withOpacity(0.08),
+                            borderRadius: AppRadius.pillR,
+                            border: Border.all(
+                              color: Colors.white.withOpacity(0.15),
+                            ),
+                          ),
+                          child: Row(
+                            children: [
+                              CircleAvatar(
+                                radius: 14,
+                                backgroundColor: AppColors.wineSoft,
+                                backgroundImage: avatarImage,
+                                child: avatarImage == null
+                                    ? Text(
+                                        initialChar,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                      )
+                                    : null,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                firstName,
+                                style: const TextStyle(
+                                  color: AppColors.parchment,
+                                  fontSize: 11.5,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: AppSpacing.md),
+              Row(
+                children: [
+                  Expanded(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: AppSpacing.md,
+                      ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.08),
-                        borderRadius: AppRadius.pillR,
-                        border: Border.all(color: Colors.white.withOpacity(0.15)),
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: AppRadius.mdR,
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.18),
+                        ),
                       ),
                       child: Row(
                         children: [
-                          CircleAvatar(
-                            radius: 14,
-                            backgroundColor: AppColors.wineSoft,
-                            backgroundImage: avatarImage,
-                            child: avatarImage == null
-                                ? Text(initialChar,
-                                    style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.w700))
-                                : null,
+                          const Icon(
+                            Icons.search,
+                            size: 18,
+                            color: Color(0xFFA9BEA3),
                           ),
                           const SizedBox(width: 8),
-                          Text(
-                            firstName,
-                            style: const TextStyle(color: AppColors.parchment, fontSize: 11.5, fontWeight: FontWeight.w600),
+                          Expanded(
+                            child: TextField(
+                              controller: _searchCtrl,
+                              onChanged: (v) => setState(() => _query = v),
+                              style: const TextStyle(
+                                color: AppColors.parchment,
+                                fontSize: 12.5,
+                              ),
+                              decoration: const InputDecoration(
+                                isDense: true,
+                                border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                disabledBorder: InputBorder.none,
+                                filled: false,
+                                hintText: 'Cari spesies, titik…',
+                                hintStyle: TextStyle(
+                                  color: Color(0xFFA9BEA3),
+                                  fontSize: 12.5,
+                                ),
+                              ),
+                            ),
                           ),
                         ],
                       ),
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: AppSpacing.md),
-          Row(
-            children: [
-              Expanded(
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: AppRadius.mdR,
-                    border: Border.all(color: Colors.white.withOpacity(0.18)),
+                    ),
                   ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.search, size: 18, color: Color(0xFFA9BEA3)),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: TextField(
-                          controller: _searchCtrl,
-                          onChanged: (v) => setState(() => _query = v),
-                          style: const TextStyle(color: AppColors.parchment, fontSize: 12.5),
-                          decoration: const InputDecoration(
-                            isDense: true,
-                            border: InputBorder.none,
-                            enabledBorder: InputBorder.none,
-                            focusedBorder: InputBorder.none,
-                            disabledBorder: InputBorder.none,
-                            filled: false,
-                            hintText: 'Cari spesies, titik…',
-                            hintStyle: TextStyle(color: Color(0xFFA9BEA3), fontSize: 12.5),
-                          ),
+                  const SizedBox(width: AppSpacing.sm),
+                  InkWell(
+                    onTap: _openFilterSheet,
+                    borderRadius: AppRadius.mdR,
+                    child: Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.1),
+                        borderRadius: AppRadius.mdR,
+                        border: Border.all(
+                          color: Colors.white.withOpacity(0.18),
                         ),
                       ),
-                    ],
+                      child: const Icon(
+                        Icons.tune,
+                        size: 18,
+                        color: AppColors.parchment,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              InkWell(
-                onTap: _openFilterSheet,
-                borderRadius: AppRadius.mdR,
-                child: Container(
-                  width: 40,
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.1),
-                    borderRadius: AppRadius.mdR,
-                    border: Border.all(color: Colors.white.withOpacity(0.18)),
-                  ),
-                  child: const Icon(Icons.tune, size: 18, color: AppColors.parchment),
-                ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
         ),
       ),
     );
@@ -374,7 +431,11 @@ class _StatCard extends StatelessWidget {
   final String label;
   final Stream<int> stream;
   final Color color;
-  const _StatCard({required this.label, required this.stream, required this.color});
+  const _StatCard({
+    required this.label,
+    required this.stream,
+    required this.color,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -385,11 +446,25 @@ class _StatCard extends StatelessWidget {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('${snapshot.data ?? 0}',
-                  style: TextStyle(fontFamily: 'Fraunces', fontWeight: FontWeight.w700, fontSize: 22, color: color)),
+              Text(
+                '${snapshot.data ?? 0}',
+                style: TextStyle(
+                  fontFamily: 'Fraunces',
+                  fontWeight: FontWeight.w700,
+                  fontSize: 22,
+                  color: color,
+                ),
+              ),
               const SizedBox(height: 4),
-              Text(label.toUpperCase(),
-                  style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w600, fontSize: 9, color: AppColors.muted)),
+              Text(
+                label.toUpperCase(),
+                style: const TextStyle(
+                  fontFamily: 'Inter',
+                  fontWeight: FontWeight.w600,
+                  fontSize: 9,
+                  color: AppColors.muted,
+                ),
+              ),
             ],
           );
         },
@@ -405,15 +480,16 @@ class _EntryCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final tanggal = entry.tanggalPengamatan;
-    final tanggalStr = '${tanggal.day.toString().padLeft(2, '0')}/${tanggal.month.toString().padLeft(2, '0')}/${tanggal.year}';
+    final tanggalStr =
+        '${tanggal.day.toString().padLeft(2, '0')}/${tanggal.month.toString().padLeft(2, '0')}/${tanggal.year}';
 
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.sm),
       child: AppCard(
         onTap: () {
-          Navigator.of(context).push(
-            MaterialPageRoute(builder: (_) => DetailScreen(entry: entry)),
-          );
+          Navigator.of(
+            context,
+          ).push(MaterialPageRoute(builder: (_) => DetailScreen(entry: entry)));
         },
         child: Row(
           children: [
@@ -428,7 +504,11 @@ class _EntryCard extends StatelessWidget {
                 ),
                 borderRadius: AppRadius.mdR,
               ),
-              child: const Icon(Icons.eco_outlined, color: Colors.white, size: 22),
+              child: const Icon(
+                Icons.eco_outlined,
+                color: Colors.white,
+                size: 22,
+              ),
             ),
             const SizedBox(width: AppSpacing.md),
             Expanded(
@@ -440,7 +520,9 @@ class _EntryCard extends StatelessWidget {
                     children: [
                       Expanded(
                         child: Text(
-                          entry.spesies?.isNotEmpty == true ? capitalizeFirst(entry.spesies!) : 'Belum teridentifikasi',
+                          entry.spesies?.isNotEmpty == true
+                              ? capitalizeFirst(entry.spesies!)
+                              : 'Belum teridentifikasi',
                           style: const TextStyle(
                             fontFamily: 'Fraunces',
                             fontWeight: FontWeight.w600,
@@ -452,7 +534,9 @@ class _EntryCard extends StatelessWidget {
                         ),
                       ),
                       StatusBadge(
-                        status: entry.syncStatus == 'synced' ? SyncStatus.synced : SyncStatus.pending,
+                        status: entry.syncStatus == 'synced'
+                            ? SyncStatus.synced
+                            : SyncStatus.pending,
                       ),
                     ],
                   ),
@@ -460,13 +544,25 @@ class _EntryCard extends StatelessWidget {
                   Wrap(
                     spacing: 9,
                     children: [
-                      Text(entry.titikPengamatan, style: AppTypography.dataSmall),
+                      Text(
+                        entry.titikPengamatan,
+                        style: AppTypography.dataSmall,
+                      ),
                       Text(tanggalStr, style: AppTypography.dataSmall),
                       if (entry.ketinggianMdpl != null)
-                        Text('${entry.ketinggianMdpl!.toStringAsFixed(0)} mdpl', style: AppTypography.dataSmall),
+                        Text(
+                          '${entry.ketinggianMdpl!.toStringAsFixed(0)} mdpl',
+                          style: AppTypography.dataSmall,
+                        ),
                       if (entry.koordinatBelumLengkap)
-                        const Text('📍 lokasi belum lengkap',
-                            style: TextStyle(fontFamily: 'JetBrainsMono', fontSize: 10, color: AppColors.redWarn)),
+                        const Text(
+                          '📍 lokasi belum lengkap',
+                          style: TextStyle(
+                            fontFamily: 'JetBrainsMono',
+                            fontSize: 10,
+                            color: AppColors.redWarn,
+                          ),
+                        ),
                     ],
                   ),
                 ],

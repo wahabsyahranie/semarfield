@@ -99,11 +99,7 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
       // yang benar-benar tersimpan di database tidak terpengaruh oleh
       // pembulatan tampilan ini.
       _lingkarKantongCtrl.text = entry.diameterKantongCm != null
-          ? _fmtNum(
-              double.parse(
-                (entry.diameterKantongCm! * math.pi).toStringAsFixed(2),
-              ),
-            )
+          ? _fmtNum(double.parse((entry.diameterKantongCm! * math.pi).toStringAsFixed(2)))
           : '';
       _tinggiTanamanCtrl.text = _fmtNum(entry.tinggiTanamanCm);
       _panjangDaunCtrl.text = _fmtNum(entry.panjangDaunCm);
@@ -148,18 +144,13 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
     final photos = await _repo.getPhotosForEntry(entryId);
     if (!mounted) return;
     setState(() {
-      _existingKantongPhotos = photos
-          .where((p) => p.jenisFoto == 'kantong')
-          .toList();
-      _existingHabitatPhotos = photos
-          .where((p) => p.jenisFoto == 'habitat')
-          .toList();
+      _existingKantongPhotos = photos.where((p) => p.jenisFoto == 'kantong').toList();
+      _existingHabitatPhotos = photos.where((p) => p.jenisFoto == 'habitat').toList();
     });
   }
 
   void _onTitikChanged() {
-    if (_isEditMode)
-      return; // fitur salin habitat cuma relevan saat nambah data baru
+    if (_isEditMode) return; // fitur salin habitat cuma relevan saat nambah data baru
     _titikDebounce?.cancel();
     _titikDebounce = Timer(const Duration(milliseconds: 600), () async {
       final raw = _titikCtrl.text.trim();
@@ -171,8 +162,7 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
       // yang tersimpan (yang juga sudah dinormalisasi saat disimpan).
       final titik = normalizeTitik(raw);
       final match = await _repo.getLatestEntryForTitik(titik);
-      final hasHabitatData =
-          match != null &&
+      final hasHabitatData = match != null &&
           (match.phTanah != null ||
               match.kelembapanTanahPersen != null ||
               match.kelembapanUdaraPersen != null ||
@@ -192,20 +182,13 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
         _mdplCtrl.text = s.ketinggianMdpl!.toStringAsFixed(0);
       }
       if (s.phTanah != null) _phCtrl.text = s.phTanah!.toString();
-      if (s.kelembapanTanahPersen != null)
-        _kelembapanTanahCtrl.text = s.kelembapanTanahPersen!.toString();
-      if (s.kelembapanUdaraPersen != null)
-        _kelembapanUdaraCtrl.text = s.kelembapanUdaraPersen!.toString();
-      if (s.suhuUdaraCelsius != null)
-        _suhuCtrl.text = s.suhuUdaraCelsius!.toString();
-      if (s.deskripsiHabitat != null)
-        _deskripsiCtrl.text = capitalizeFirst(s.deskripsiHabitat!);
+      if (s.kelembapanTanahPersen != null) _kelembapanTanahCtrl.text = s.kelembapanTanahPersen!.toString();
+      if (s.kelembapanUdaraPersen != null) _kelembapanUdaraCtrl.text = s.kelembapanUdaraPersen!.toString();
+      if (s.suhuUdaraCelsius != null) _suhuCtrl.text = s.suhuUdaraCelsius!.toString();
+      if (s.deskripsiHabitat != null) _deskripsiCtrl.text = capitalizeFirst(s.deskripsiHabitat!);
       _habitatSuggestion = null;
     });
-    showSnack(
-      context,
-      'Kondisi habitat disalin. Boleh dikoreksi kalau ada yang beda.',
-    );
+    showSnack(context, 'Kondisi habitat disalin. Boleh dikoreksi kalau ada yang beda.');
   }
 
   @override
@@ -214,22 +197,11 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
     _titikDebounce?.cancel();
     _gpsSub?.cancel();
     for (final c in [
-      _titikCtrl,
-      _mdplCtrl,
-      _manualLatCtrl,
-      _manualLngCtrl,
-      _spesiesCtrl,
-      _panjangKantongCtrl,
-      _lingkarKantongCtrl,
-      _tinggiTanamanCtrl,
-      _panjangDaunCtrl,
-      _warnaKantongCtrl,
-      _jumlahIndividuCtrl,
-      _phCtrl,
-      _kelembapanTanahCtrl,
-      _kelembapanUdaraCtrl,
-      _suhuCtrl,
-      _deskripsiCtrl,
+      _titikCtrl, _mdplCtrl, _manualLatCtrl, _manualLngCtrl,
+      _spesiesCtrl, _panjangKantongCtrl, _lingkarKantongCtrl,
+      _tinggiTanamanCtrl, _panjangDaunCtrl, _warnaKantongCtrl,
+      _jumlahIndividuCtrl, _phCtrl, _kelembapanTanahCtrl,
+      _kelembapanUdaraCtrl, _suhuCtrl, _deskripsiCtrl,
     ]) {
       c.dispose();
     }
@@ -257,8 +229,7 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
       (pos) {
         setState(() {
           _position = pos;
-          _gpsAcquiring =
-              false; // bacaan pertama sudah masuk, tapi terus diperbarui
+          _gpsAcquiring = false; // bacaan pertama sudah masuk, tapi terus diperbarui
           // Ketinggian SENGAJA tidak diisi di sini tiap tick — akurasi
           // vertikal (altitude) memang ikut membaik selama GPS masih
           // mencari sinyal, sama seperti akurasi horizontal, tapi kalau
@@ -271,9 +242,7 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
       onError: (e) {
         setState(() {
           _gpsAcquiring = false;
-          _gpsError = e is LocationFailure
-              ? e.message
-              : 'Gagal mengambil lokasi. Coba lagi di ruang terbuka.';
+          _gpsError = e is LocationFailure ? e.message : 'Gagal mengambil lokasi. Coba lagi di ruang terbuka.';
         });
         _gpsSub?.cancel();
         _gpsSub = null;
@@ -299,9 +268,7 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
       // (paling akurat) — tapi cuma kalau field masih kosong, supaya
       // tidak menimpa angka yang sudah diketik manual user (misal dari
       // alat GPS Essentials terpisah yang lebih presisi untuk mdpl).
-      if (_mdplCtrl.text.trim().isEmpty &&
-          _position != null &&
-          _position!.altitude != 0) {
+      if (_mdplCtrl.text.trim().isEmpty && _position != null && _position!.altitude != 0) {
         _mdplCtrl.text = _position!.altitude.round().toString();
       }
     });
@@ -360,11 +327,8 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
 
   // ================= Simpan =================
 
-  double? _parseDouble(String text) => text.trim().isEmpty
-      ? null
-      : double.tryParse(text.trim().replaceAll(',', '.'));
-  int? _parseInt(String text) =>
-      text.trim().isEmpty ? null : int.tryParse(text.trim());
+  double? _parseDouble(String text) => text.trim().isEmpty ? null : double.tryParse(text.trim().replaceAll(',', '.'));
+  int? _parseInt(String text) => text.trim().isEmpty ? null : int.tryParse(text.trim());
 
   /// User mengisi lingkar (keliling) kantong — lebih gampang diukur
   /// pakai tali/meteran lentur dibanding diameter yang butuh jangka
@@ -395,16 +359,14 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
     }
 
     final hasGps = _position != null;
-    final hasManualCoord =
-        _manualCoordMode &&
+    final hasManualCoord = _manualCoordMode &&
         _parseDouble(_manualLatCtrl.text) != null &&
         _parseDouble(_manualLngCtrl.text) != null;
     if (!hasGps && !hasManualCoord && !_deferLocation) {
       return 'Isi lokasi dulu — ambil GPS, isi koordinat manual, atau centang "lengkapi lokasi nanti".';
     }
 
-    final totalKantongPhotos =
-        _kantongPhotos.length + _existingKantongPhotos.length;
+    final totalKantongPhotos = _kantongPhotos.length + _existingKantongPhotos.length;
     if (totalKantongPhotos == 0) {
       return 'Tambahkan minimal 1 foto kantong sebagai dokumentasi.';
     }
@@ -454,6 +416,16 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
       int entryId;
       if (_isEditMode) {
         entryId = widget.existingEntry!.id;
+
+        // Elevasi API Maps cuma relevan untuk koordinat yang dipakai
+        // saat pertama kali di-fetch. Kalau lat/long berubah di sesi
+        // edit ini, nilai lama sudah tidak mewakili lokasi yang baru
+        // — dikosongkan lagi supaya Detail screen menampilkan tombol
+        // "Ambil dari Google Maps" (bukan angka basi dari titik lama).
+        final old = widget.existingEntry!;
+        final coordsChanged = old.latitude != lat || old.longitude != lng;
+        final elevasiApiToKeep = coordsChanged ? null : old.elevasiApiMeter;
+
         await _repo.perbaruiEntry(
           id: entryId,
           titikPengamatan: titikNormalized,
@@ -461,8 +433,7 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
           latitude: lat,
           longitude: lng,
           gpsAccuracyMeter: gpsAccuracy,
-          koordinatBelumLengkap:
-              _deferLocation || (lat == null && !_manualCoordMode),
+          koordinatBelumLengkap: _deferLocation || (lat == null && !_manualCoordMode),
           ketinggianMdpl: _parseDouble(_mdplCtrl.text),
           spesies: spesiesNormalized.isEmpty ? null : spesiesNormalized,
           panjangKantongCm: _parseDouble(_panjangKantongCtrl.text),
@@ -475,9 +446,8 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
           kelembapanTanahPersen: _parseDouble(_kelembapanTanahCtrl.text),
           kelembapanUdaraPersen: _parseDouble(_kelembapanUdaraCtrl.text),
           suhuUdaraCelsius: _parseDouble(_suhuCtrl.text),
-          deskripsiHabitat: deskripsiNormalized.isEmpty
-              ? null
-              : deskripsiNormalized,
+          deskripsiHabitat: deskripsiNormalized.isEmpty ? null : deskripsiNormalized,
+          elevasiApiMeter: elevasiApiToKeep,
         );
       } else {
         entryId = await _repo.tambahEntry(
@@ -486,8 +456,7 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
           latitude: lat,
           longitude: lng,
           gpsAccuracyMeter: gpsAccuracy,
-          koordinatBelumLengkap:
-              _deferLocation || (lat == null && !_manualCoordMode),
+          koordinatBelumLengkap: _deferLocation || (lat == null && !_manualCoordMode),
           ketinggianMdpl: _parseDouble(_mdplCtrl.text),
           spesies: spesiesNormalized.isEmpty ? null : spesiesNormalized,
           panjangKantongCm: _parseDouble(_panjangKantongCtrl.text),
@@ -500,9 +469,7 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
           kelembapanTanahPersen: _parseDouble(_kelembapanTanahCtrl.text),
           kelembapanUdaraPersen: _parseDouble(_kelembapanUdaraCtrl.text),
           suhuUdaraCelsius: _parseDouble(_suhuCtrl.text),
-          deskripsiHabitat: deskripsiNormalized.isEmpty
-              ? null
-              : deskripsiNormalized,
+          deskripsiHabitat: deskripsiNormalized.isEmpty ? null : deskripsiNormalized,
         );
       }
 
@@ -510,41 +477,25 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
       // interaksi grid — di sini cuma perlu insert foto BARU yang
       // ditambahkan selama sesi form ini.
       for (final path in _kantongPhotos) {
-        await _repo.tambahFoto(
-          entryId: entryId,
-          localPath: path,
-          jenisFoto: 'kantong',
-        );
+        await _repo.tambahFoto(entryId: entryId, localPath: path, jenisFoto: 'kantong');
       }
       for (final path in _habitatPhotos) {
-        await _repo.tambahFoto(
-          entryId: entryId,
-          localPath: path,
-          jenisFoto: 'habitat',
-        );
+        await _repo.tambahFoto(entryId: entryId, localPath: path, jenisFoto: 'habitat');
       }
 
       if (!mounted) return;
       ScaffoldMessenger.of(context)
         ..clearSnackBars()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(
-              _isEditMode
-                  ? 'Perubahan tersimpan offline. Akan disinkronkan ulang saat online.'
-                  : 'Data tersimpan offline. Akan disinkronkan saat online.',
-            ),
-          ),
-        );
+        ..showSnackBar(SnackBar(content: Text(_isEditMode
+            ? 'Perubahan tersimpan offline. Akan disinkronkan ulang saat online.'
+            : 'Data tersimpan offline. Akan disinkronkan saat online.')));
       Navigator.of(context).pop();
     } catch (_) {
       if (!mounted) return;
       setState(() => _saving = false);
       ScaffoldMessenger.of(context)
         ..clearSnackBars()
-        ..showSnackBar(
-          const SnackBar(content: Text('Gagal menyimpan data. Coba lagi.')),
-        );
+        ..showSnackBar(const SnackBar(content: Text('Gagal menyimpan data. Coba lagi.')));
     }
   }
 
@@ -559,305 +510,158 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(
-            AppSpacing.lg,
-            AppSpacing.lg,
-            AppSpacing.lg,
-            AppSpacing.xxl,
-          ),
-          children: [
-            _sectionCard(
-              title: 'Lokasi & Waktu',
-              children: [
-                _buildGpsBox(),
-                const SizedBox(height: AppSpacing.md),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppTextField(
-                        label: 'Titik Pengamatan',
-                        controller: _titikCtrl,
-                        hintText: 'A01',
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: AppTextField(
-                        label: 'Ketinggian',
-                        isAuto: true,
-                        unit: 'mdpl',
-                        useMonoFont: true,
-                        controller: _mdplCtrl,
-                        hintText: 'Tekan GPS di atas',
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.md),
-                _buildDatePicker(),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _sectionCard(
-              title: 'Data Individu Nepenthes',
-              children: [
-                AppTextField(
-                  label: 'Spesies',
-                  controller: _spesiesCtrl,
-                  hintText: 'Nepenthes spectabilis',
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppTextField(
-                        label: 'Panjang Kantong',
-                        unit: 'cm',
-                        useMonoFont: true,
-                        controller: _panjangKantongCtrl,
-                        hintText: '3.5',
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: AppTextField(
-                        label: 'Lingkar Kantong',
-                        unit: 'cm',
-                        useMonoFont: true,
-                        controller: _lingkarKantongCtrl,
-                        hintText: '5.7',
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.md),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppTextField(
-                        label: 'Tinggi Tanaman',
-                        unit: 'cm',
-                        useMonoFont: true,
-                        controller: _tinggiTanamanCtrl,
-                        hintText: '24',
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: AppTextField(
-                        label: 'Panjang Daun',
-                        unit: 'cm',
-                        useMonoFont: true,
-                        controller: _panjangDaunCtrl,
-                        hintText: '9',
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.md),
-                AppTextField(
-                  label: 'Warna Kantong',
-                  controller: _warnaKantongCtrl,
-                  hintText: 'Hijau kekuningan bercak ungu',
-                ),
-                const SizedBox(height: AppSpacing.md),
-                AppTextField(
-                  label: 'Jumlah Individu di Titik Ini',
-                  controller: _jumlahIndividuCtrl,
-                  hintText: '3',
-                  keyboardType: TextInputType.number,
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _sectionCard(
-              title: 'Kondisi Habitat',
-              children: [
-                if (_habitatSuggestion != null) ...[
-                  Container(
-                    padding: const EdgeInsets.all(AppSpacing.md),
-                    decoration: BoxDecoration(
-                      color: AppColors.amberBg,
-                      borderRadius: AppRadius.mdR,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Titik "${_habitatSuggestion!.titikPengamatan}" sudah pernah didata — pakai kondisi habitat yang sama?',
-                          style: const TextStyle(
-                            fontFamily: 'Inter',
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w600,
-                            color: AppColors.ink,
-                          ),
-                        ),
-                        const SizedBox(height: AppSpacing.sm),
-                        Row(
-                          children: [
-                            Expanded(
-                              child: AppButton(
-                                label: 'Salin Kondisi Habitat',
-                                variant: AppButtonVariant.secondary,
-                                onPressed: _applyHabitatSuggestion,
-                              ),
-                            ),
-                            const SizedBox(width: AppSpacing.sm),
-                            TextButton(
-                              onPressed: () =>
-                                  setState(() => _habitatSuggestion = null),
-                              child: const Text(
-                                'Abaikan',
-                                style: TextStyle(fontSize: 11.5),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+        padding: const EdgeInsets.fromLTRB(AppSpacing.lg, AppSpacing.lg, AppSpacing.lg, AppSpacing.xxl),
+        children: [
+          _sectionCard(
+            title: 'Lokasi & Waktu',
+            children: [
+              _buildGpsBox(),
+              const SizedBox(height: AppSpacing.md),
+              Row(
+                children: [
+                  Expanded(
+                    child: AppTextField(
+                      label: 'Titik Pengamatan',
+                      controller: _titikCtrl,
+                      hintText: 'A01',
                     ),
                   ),
-                  const SizedBox(height: AppSpacing.md),
+                  const SizedBox(width: AppSpacing.sm),
+                  Expanded(
+                    child: AppTextField(
+                      label: 'Ketinggian',
+                      isAuto: true,
+                      unit: 'mdpl',
+                      useMonoFont: true,
+                      controller: _mdplCtrl,
+                      hintText: 'Tekan GPS di atas',
+                      keyboardType: TextInputType.number,
+                    ),
+                  ),
                 ],
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppTextField(
-                        label: 'pH Tanah',
-                        unit: 'pH',
-                        useMonoFont: true,
-                        controller: _phCtrl,
-                        hintText: '5.4',
-                        keyboardType: TextInputType.number,
+              ),
+              const SizedBox(height: AppSpacing.md),
+              _buildDatePicker(),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _sectionCard(
+            title: 'Data Individu Nepenthes',
+            children: [
+              AppTextField(label: 'Spesies', controller: _spesiesCtrl, hintText: 'Nepenthes spectabilis'),
+              const SizedBox(height: AppSpacing.md),
+              Row(children: [
+                Expanded(child: AppTextField(label: 'Panjang Kantong', unit: 'cm', useMonoFont: true, controller: _panjangKantongCtrl, hintText: '3.5', keyboardType: TextInputType.number)),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(child: AppTextField(label: 'Lingkar Kantong', unit: 'cm', useMonoFont: true, controller: _lingkarKantongCtrl, hintText: '5.7', keyboardType: TextInputType.number)),
+              ]),
+              const SizedBox(height: AppSpacing.md),
+              Row(children: [
+                Expanded(child: AppTextField(label: 'Tinggi Tanaman', unit: 'cm', useMonoFont: true, controller: _tinggiTanamanCtrl, hintText: '24', keyboardType: TextInputType.number)),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(child: AppTextField(label: 'Panjang Daun', unit: 'cm', useMonoFont: true, controller: _panjangDaunCtrl, hintText: '9', keyboardType: TextInputType.number)),
+              ]),
+              const SizedBox(height: AppSpacing.md),
+              AppTextField(label: 'Warna Kantong', controller: _warnaKantongCtrl, hintText: 'Hijau kekuningan bercak ungu'),
+              const SizedBox(height: AppSpacing.md),
+              AppTextField(label: 'Jumlah Individu di Titik Ini', controller: _jumlahIndividuCtrl, hintText: '3', keyboardType: TextInputType.number),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _sectionCard(
+            title: 'Kondisi Habitat',
+            children: [
+              if (_habitatSuggestion != null) ...[
+                Container(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  decoration: BoxDecoration(color: AppColors.amberBg, borderRadius: AppRadius.mdR),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Titik "${_habitatSuggestion!.titikPengamatan}" sudah pernah didata — pakai kondisi habitat yang sama?',
+                        style: const TextStyle(fontFamily: 'Inter', fontSize: 11.5, fontWeight: FontWeight.w600, color: AppColors.ink),
                       ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: AppTextField(
-                        label: 'Kelembapan Tanah',
-                        unit: '%',
-                        useMonoFont: true,
-                        controller: _kelembapanTanahCtrl,
-                        hintText: '53',
-                        keyboardType: TextInputType.number,
+                      const SizedBox(height: AppSpacing.sm),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: AppButton(
+                              label: 'Salin Kondisi Habitat',
+                              variant: AppButtonVariant.secondary,
+                              onPressed: _applyHabitatSuggestion,
+                            ),
+                          ),
+                          const SizedBox(width: AppSpacing.sm),
+                          TextButton(
+                            onPressed: () => setState(() => _habitatSuggestion = null),
+                            child: const Text('Abaikan', style: TextStyle(fontSize: 11.5)),
+                          ),
+                        ],
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 const SizedBox(height: AppSpacing.md),
-                Row(
-                  children: [
-                    Expanded(
-                      child: AppTextField(
-                        label: 'Kelembapan Udara',
-                        unit: '%RH',
-                        useMonoFont: true,
-                        controller: _kelembapanUdaraCtrl,
-                        hintText: '73',
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                    const SizedBox(width: AppSpacing.sm),
-                    Expanded(
-                      child: AppTextField(
-                        label: 'Suhu Udara',
-                        unit: '°C',
-                        useMonoFont: true,
-                        controller: _suhuCtrl,
-                        hintText: '22',
-                        keyboardType: TextInputType.number,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: AppSpacing.md),
-                AppTextField(
-                  label: 'Deskripsi Habitat',
-                  controller: _deskripsiCtrl,
-                  hintText: 'Semak belukar, tanah berhumus, vegetasi rapat…',
-                  maxLines: 3,
-                ),
               ],
-            ),
-            const SizedBox(height: AppSpacing.md),
-            _sectionCard(
-              title: 'Dokumentasi Foto',
-              children: [
-                const Text('Foto Kantong Semar', style: AppTypography.label),
-                const SizedBox(height: AppSpacing.sm),
-                _buildPhotoGrid(
-                  _existingKantongPhotos,
-                  _kantongPhotos,
-                  isKantong: true,
-                ),
-                const SizedBox(height: AppSpacing.lg),
-                const Text(
-                  'Foto Area Sekitar / Habitat',
-                  style: AppTypography.label,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                _buildPhotoGrid(
-                  _existingHabitatPhotos,
-                  _habitatPhotos,
-                  isKantong: false,
-                ),
-                const SizedBox(height: AppSpacing.sm),
-                const Text(
-                  'Foto tersimpan di penyimpanan lokal HP dan ikut disinkronkan ke Firebase Storage saat online.',
-                  style: AppTypography.bodySm,
-                ),
-              ],
-            ),
-            const SizedBox(height: AppSpacing.xl),
-            AppButton(
-              label: _isEditMode ? 'Simpan Perubahan' : 'Simpan Data (Offline)',
-              icon: Icons.save_outlined,
-              loading: _saving,
-              onPressed: _save,
-            ),
-          ],
+              Row(children: [
+                Expanded(child: AppTextField(label: 'pH Tanah', unit: 'pH', useMonoFont: true, controller: _phCtrl, hintText: '5.4', keyboardType: TextInputType.number)),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(child: AppTextField(label: 'Kelembapan Tanah', unit: '%', useMonoFont: true, controller: _kelembapanTanahCtrl, hintText: '53', keyboardType: TextInputType.number)),
+              ]),
+              const SizedBox(height: AppSpacing.md),
+              Row(children: [
+                Expanded(child: AppTextField(label: 'Kelembapan Udara', unit: '%RH', useMonoFont: true, controller: _kelembapanUdaraCtrl, hintText: '73', keyboardType: TextInputType.number)),
+                const SizedBox(width: AppSpacing.sm),
+                Expanded(child: AppTextField(label: 'Suhu Udara', unit: '°C', useMonoFont: true, controller: _suhuCtrl, hintText: '22', keyboardType: TextInputType.number)),
+              ]),
+              const SizedBox(height: AppSpacing.md),
+              AppTextField(label: 'Deskripsi Habitat', controller: _deskripsiCtrl, hintText: 'Semak belukar, tanah berhumus, vegetasi rapat…', maxLines: 3),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.md),
+          _sectionCard(
+            title: 'Dokumentasi Foto',
+            children: [
+              const Text('Foto Kantong Semar', style: AppTypography.label),
+              const SizedBox(height: AppSpacing.sm),
+              _buildPhotoGrid(_existingKantongPhotos, _kantongPhotos, isKantong: true),
+              const SizedBox(height: AppSpacing.lg),
+              const Text('Foto Area Sekitar / Habitat', style: AppTypography.label),
+              const SizedBox(height: AppSpacing.sm),
+              _buildPhotoGrid(_existingHabitatPhotos, _habitatPhotos, isKantong: false),
+              const SizedBox(height: AppSpacing.sm),
+              const Text(
+                'Foto tersimpan di penyimpanan lokal HP dan ikut disinkronkan ke Firebase Storage saat online.',
+                style: AppTypography.bodySm,
+              ),
+            ],
+          ),
+          const SizedBox(height: AppSpacing.xl),
+          AppButton(
+            label: _isEditMode ? 'Simpan Perubahan' : 'Simpan Data (Offline)',
+            icon: Icons.save_outlined,
+            loading: _saving,
+            onPressed: _save,
+          ),
+        ],
         ),
       ),
     );
   }
 
-  Widget _sectionCard({
-    required String title,
-    String? note,
-    required List<Widget> children,
-  }) {
+  Widget _sectionCard({required String title, String? note, required List<Widget> children}) {
     return AppCard(
       padding: const EdgeInsets.all(AppSpacing.lg),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Container(
-                width: 7,
-                height: 7,
-                decoration: const BoxDecoration(
-                  color: AppColors.wine,
-                  shape: BoxShape.circle,
-                ),
-              ),
-              const SizedBox(width: AppSpacing.sm),
-              Text(
-                title.toUpperCase(),
-                style: const TextStyle(
-                  fontFamily: 'Inter',
-                  fontWeight: FontWeight.w700,
-                  fontSize: 12.5,
-                  letterSpacing: 0.5,
-                  color: AppColors.forestDeep,
-                ),
-              ),
-            ],
-          ),
+          Row(children: [
+            Container(width: 7, height: 7, decoration: const BoxDecoration(color: AppColors.wine, shape: BoxShape.circle)),
+            const SizedBox(width: AppSpacing.sm),
+            Text(title.toUpperCase(),
+                style: const TextStyle(fontFamily: 'Inter', fontWeight: FontWeight.w700, fontSize: 12.5, letterSpacing: 0.5, color: AppColors.forestDeep)),
+          ]),
           if (note != null) ...[
             const SizedBox(height: 6),
             Padding(
@@ -873,8 +677,7 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
   }
 
   Widget _buildDatePicker() {
-    final dateStr =
-        '${_tanggal.day.toString().padLeft(2, '0')}/${_tanggal.month.toString().padLeft(2, '0')}/${_tanggal.year}';
+    final dateStr = '${_tanggal.day.toString().padLeft(2, '0')}/${_tanggal.month.toString().padLeft(2, '0')}/${_tanggal.year}';
     // Sengaja tidak ada field "Waktu" terpisah — jam pengamatan otomatis
     // terekam dari kapan form ini diisi/disimpan (lihat _tanggal, defaultnya
     // DateTime.now()), jadi tidak perlu tambahan input yang bikin form
@@ -890,15 +693,7 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
         // Tanggal boleh diganti (misal backfill data), tapi jam yang
         // sudah terekam tetap dipertahankan, tidak direset ke 00:00.
         if (picked != null) {
-          setState(
-            () => _tanggal = DateTime(
-              picked.year,
-              picked.month,
-              picked.day,
-              _tanggal.hour,
-              _tanggal.minute,
-            ),
-          );
+          setState(() => _tanggal = DateTime(picked.year, picked.month, picked.day, _tanggal.hour, _tanggal.minute));
         }
       },
       child: Column(
@@ -911,20 +706,9 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
               const Text('Tanggal Pengamatan', style: AppTypography.label),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                decoration: BoxDecoration(
-                  color: AppColors.greenBg,
-                  borderRadius: AppRadius.pillR,
-                ),
-                child: const Text(
-                  'otomatis',
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                    color: AppColors.greenOk,
-                    letterSpacing: 0.2,
-                  ),
-                ),
+                decoration: BoxDecoration(color: AppColors.greenBg, borderRadius: AppRadius.pillR),
+                child: const Text('otomatis',
+                    style: TextStyle(fontFamily: 'Inter', fontSize: 9, fontWeight: FontWeight.w700, color: AppColors.greenOk, letterSpacing: 0.2)),
               ),
             ],
           ),
@@ -935,11 +719,7 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(dateStr, style: AppTypography.bodyMd),
-                const Icon(
-                  Icons.calendar_today_outlined,
-                  size: 15,
-                  color: AppColors.muted,
-                ),
+                const Icon(Icons.calendar_today_outlined, size: 15, color: AppColors.muted),
               ],
             ),
           ),
@@ -952,10 +732,7 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
     final isRefining = _position != null && !_gpsLocked && !_gpsAcquiring;
     return Container(
       padding: const EdgeInsets.all(AppSpacing.md),
-      decoration: BoxDecoration(
-        color: AppColors.forestDeep,
-        borderRadius: AppRadius.lgR,
-      ),
+      decoration: BoxDecoration(color: AppColors.forestDeep, borderRadius: AppRadius.lgR),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -967,32 +744,19 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
                   _gpsAcquiring
                       ? 'Mencari sinyal satelit…'
                       : isRefining
-                      ? 'Menyempurnakan akurasi…'
-                      : _gpsLocked
-                      ? 'Koordinat dikunci'
-                      : 'GPS belum diaktifkan',
-                  style: const TextStyle(
-                    color: AppColors.parchment,
-                    fontSize: 12.5,
-                    fontWeight: FontWeight.w600,
-                  ),
+                          ? 'Menyempurnakan akurasi…'
+                          : _gpsLocked
+                              ? 'Koordinat dikunci'
+                              : 'GPS belum diaktifkan',
+                  style: const TextStyle(color: AppColors.parchment, fontSize: 12.5, fontWeight: FontWeight.w600),
                 ),
               ),
               if (_gpsAcquiring || isRefining)
                 const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Color(0xFF6EA36B),
-                  ),
+                  width: 20, height: 20,
+                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF6EA36B)),
                 ),
-              if (_gpsLocked)
-                const Icon(
-                  Icons.check_circle,
-                  color: Color(0xFF6EA36B),
-                  size: 20,
-                ),
+              if (_gpsLocked) const Icon(Icons.check_circle, color: Color(0xFF6EA36B), size: 20),
             ],
           ),
           if (isRefining) ...[
@@ -1014,10 +778,7 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
 
           if (_gpsError != null) ...[
             const SizedBox(height: AppSpacing.sm),
-            Text(
-              _gpsError!,
-              style: const TextStyle(color: Color(0xFFE8968A), fontSize: 10.5),
-            ),
+            Text(_gpsError!, style: const TextStyle(color: Color(0xFFE8968A), fontSize: 10.5)),
           ],
 
           if (_position != null) ...[
@@ -1026,22 +787,11 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
               children: [
                 Expanded(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withOpacity(0.08),
-                      borderRadius: AppRadius.smR,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(color: Colors.white.withOpacity(0.08), borderRadius: AppRadius.smR),
                     child: Text(
                       '${_position!.latitude.toStringAsFixed(5)}, ${_position!.longitude.toStringAsFixed(5)}',
-                      style: const TextStyle(
-                        fontFamily: 'JetBrainsMono',
-                        color: AppColors.parchment,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w600,
-                      ),
+                      style: const TextStyle(fontFamily: 'JetBrainsMono', color: AppColors.parchment, fontSize: 12.5, fontWeight: FontWeight.w600),
                     ),
                   ),
                 ),
@@ -1052,15 +802,9 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppColors.parchment,
                       side: const BorderSide(color: Colors.white24),
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 8,
-                      ),
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                     ),
-                    child: const Text(
-                      '↻ Ambil Ulang',
-                      style: TextStyle(fontSize: 11),
-                    ),
+                    child: const Text('↻ Ambil Ulang', style: TextStyle(fontSize: 11)),
                   ),
                 ],
               ],
@@ -1080,63 +824,32 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
           ],
 
           TextButton(
-            onPressed: () =>
-                setState(() => _manualCoordMode = !_manualCoordMode),
+            onPressed: () => setState(() => _manualCoordMode = !_manualCoordMode),
             child: Text(
-              _manualCoordMode
-                  ? 'Tutup input manual'
-                  : 'Tidak ada sinyal GPS? Input koordinat manual',
-              style: const TextStyle(
-                color: Color(0xFFB9CBB2),
-                fontSize: 10.5,
-                decoration: TextDecoration.underline,
-              ),
+              _manualCoordMode ? 'Tutup input manual' : 'Tidak ada sinyal GPS? Input koordinat manual',
+              style: const TextStyle(color: Color(0xFFB9CBB2), fontSize: 10.5, decoration: TextDecoration.underline),
             ),
           ),
           if (_manualCoordMode) ...[
-            Row(
-              children: [
-                Expanded(
-                  child: TextField(
-                    controller: _manualLatCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                      signed: true,
-                    ),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontFamily: 'JetBrainsMono',
-                      fontSize: 12,
-                    ),
-                    decoration: const InputDecoration(
-                      hintText: 'Lat: -3.2412',
-                      filled: true,
-                      fillColor: Colors.white10,
-                    ),
-                  ),
+            Row(children: [
+              Expanded(
+                child: TextField(
+                  controller: _manualLatCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                  style: const TextStyle(color: Colors.white, fontFamily: 'JetBrainsMono', fontSize: 12),
+                  decoration: const InputDecoration(hintText: 'Lat: -3.2412', filled: true, fillColor: Colors.white10),
                 ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: TextField(
-                    controller: _manualLngCtrl,
-                    keyboardType: const TextInputType.numberWithOptions(
-                      decimal: true,
-                      signed: true,
-                    ),
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontFamily: 'JetBrainsMono',
-                      fontSize: 12,
-                    ),
-                    decoration: const InputDecoration(
-                      hintText: 'Long: 98.5042',
-                      filled: true,
-                      fillColor: Colors.white10,
-                    ),
-                  ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: TextField(
+                  controller: _manualLngCtrl,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true, signed: true),
+                  style: const TextStyle(color: Colors.white, fontFamily: 'JetBrainsMono', fontSize: 12),
+                  decoration: const InputDecoration(hintText: 'Long: 98.5042', filled: true, fillColor: Colors.white10),
                 ),
-              ],
-            ),
+              ),
+            ]),
           ],
 
           CheckboxListTile(
@@ -1165,42 +878,22 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
     late String label;
     switch (tier) {
       case _AccuracyTier.good:
-        bg = const Color(0xFF2C4A2E);
-        fg = const Color(0xFF9BDD93);
-        label = 'Akurasi ±${acc.toStringAsFixed(0)} m — baik';
-        break;
+        bg = const Color(0xFF2C4A2E); fg = const Color(0xFF9BDD93); label = 'Akurasi ±${acc.toStringAsFixed(0)} m — baik'; break;
       case _AccuracyTier.mid:
-        bg = const Color(0xFF4A3E20);
-        fg = const Color(0xFFE8C685);
-        label = 'Akurasi ±${acc.toStringAsFixed(0)} m — sedang';
-        break;
+        bg = const Color(0xFF4A3E20); fg = const Color(0xFFE8C685); label = 'Akurasi ±${acc.toStringAsFixed(0)} m — sedang'; break;
       case _AccuracyTier.bad:
-        bg = const Color(0xFF4A2620);
-        fg = const Color(0xFFE8968A);
-        label = 'Akurasi ±${acc.toStringAsFixed(0)} m — rendah';
-        break;
+        bg = const Color(0xFF4A2620); fg = const Color(0xFFE8968A); label = 'Akurasi ±${acc.toStringAsFixed(0)} m — rendah'; break;
       case _AccuracyTier.none:
         return const SizedBox.shrink();
     }
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(color: bg, borderRadius: AppRadius.pillR),
-      child: Text(
-        label,
-        style: TextStyle(
-          color: fg,
-          fontSize: 10.5,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
+      child: Text(label, style: TextStyle(color: fg, fontSize: 10.5, fontWeight: FontWeight.w700)),
     );
   }
 
-  Widget _buildPhotoGrid(
-    List<PendataanPhoto> existingPhotos,
-    List<String> newPhotos, {
-    required bool isKantong,
-  }) {
+  Widget _buildPhotoGrid(List<PendataanPhoto> existingPhotos, List<String> newPhotos, {required bool isKantong}) {
     return Wrap(
       spacing: 8,
       runSpacing: 8,
@@ -1210,24 +903,15 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
             children: [
               ClipRRect(
                 borderRadius: AppRadius.mdR,
-                child: Image.file(
-                  File(photo.localPath),
-                  width: 64,
-                  height: 64,
-                  fit: BoxFit.cover,
-                ),
+                child: Image.file(File(photo.localPath), width: 64, height: 64, fit: BoxFit.cover),
               ),
               Positioned(
-                top: -6,
-                right: -6,
+                top: -6, right: -6,
                 child: InkWell(
                   onTap: () async {
                     await _repo.hapusFoto(photo.id);
                     setState(() {
-                      (isKantong
-                              ? _existingKantongPhotos
-                              : _existingHabitatPhotos)
-                          .remove(photo);
+                      (isKantong ? _existingKantongPhotos : _existingHabitatPhotos).remove(photo);
                     });
                   },
                   child: const CircleAvatar(
@@ -1244,16 +928,10 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
             children: [
               ClipRRect(
                 borderRadius: AppRadius.mdR,
-                child: Image.file(
-                  File(path),
-                  width: 64,
-                  height: 64,
-                  fit: BoxFit.cover,
-                ),
+                child: Image.file(File(path), width: 64, height: 64, fit: BoxFit.cover),
               ),
               Positioned(
-                top: -6,
-                right: -6,
+                top: -6, right: -6,
                 child: InkWell(
                   onTap: () => setState(() => newPhotos.remove(path)),
                   child: const CircleAvatar(
@@ -1269,16 +947,11 @@ class _AddDataFormScreenState extends State<AddDataFormScreen> {
           onTap: () => _addPhoto(isKantong: isKantong),
           borderRadius: AppRadius.mdR,
           child: Container(
-            width: 64,
-            height: 64,
+            width: 64, height: 64,
             decoration: BoxDecoration(
               color: const Color(0xFFF0EAD6),
               borderRadius: AppRadius.mdR,
-              border: Border.all(
-                color: AppColors.line,
-                width: 1.5,
-                style: BorderStyle.solid,
-              ),
+              border: Border.all(color: AppColors.line, width: 1.5, style: BorderStyle.solid),
             ),
             child: const Icon(Icons.add, color: AppColors.muted),
           ),
