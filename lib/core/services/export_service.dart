@@ -120,21 +120,28 @@ class ExportService {
     return xlsxFile;
   }
 
+  /// KML biasa (bukan KMZ) — foto TIDAK di-embed sebagai file lokal lagi.
+  /// Alasan gantinya: Google Earth WEB (earth.google.com) tidak konsisten
+  /// membaca gambar yang di-embed lewat path relatif di dalam paket KMZ
+  /// (sempat muncul tanda ⚠️ waktu diuji) — beda dari Google Earth Pro
+  /// (aplikasi desktop) yang dukungannya lebih lengkap untuk itu.
+  ///
+  /// Solusinya: foto dirujuk lewat URL Firebase Storage (`photo.uploadedUrl`)
+  /// — URL publik biasa, jadi konsisten kebaca di Earth Web, Earth Pro,
+  /// MAUPUN Google My Maps sekaligus. Konsekuensinya: entri yang FOTONYA
+  /// belum tersinkron ke Firebase tidak akan menampilkan gambar di peta
+  /// (datanya tetap muncul, cuma tanpa foto) — sinkron dulu dari Profile
+  /// sebelum export kalau mau semua titik punya foto di peta.
   Future<File> _buildKml(List<PendataanEntry> entries, Directory exportDir) async {
     final buffer = StringBuffer();
     buffer.writeln('<?xml version="1.0" encoding="UTF-8"?>');
     buffer.writeln('<kml xmlns="http://www.opengis.net/kml/2.2">');
-    // Sengaja tidak diberi <name> pada <Document>. CATATAN JUJUR: ini
-    // TIDAK menghilangkan folder pembungkus di Google Earth WEB — sudah
-    // diuji langsung, foldernya tetap muncul (dinamai dari NAMA FILE
-    // "peta_lokasi", bukan dari isi KML). Earth Web memang selalu
-    // membungkus setiap file KML yang di-import sebagai satu layer/
-    // folder tersendiri di panel Map Contents — ini perilaku platform
-    // Earth Web sendiri, di luar kendali konten KML kita. Tag <name>
-    // tetap dihilangkan karena tidak merugikan dan relevan untuk
-    // Google Earth PRO (desktop) / Google My Maps yang caranya membaca
-    // KML sedikit berbeda.
     buffer.writeln('<Document>');
+    // Folder pembungkus di Google Earth Web memang tidak bisa dihindari
+    // (itu perilaku platform-nya, lihat percakapan sebelumnya) — jadi
+    // daripada dibiarkan tampil sebagai nama file mentah ("peta_lokasi"),
+    // lebih baik diberi nama yang jelas.
+    buffer.writeln('<name>${_xmlEscape('SemarField - Persebaran Nepenthes')}</name>');
 
     for (final e in entries) {
       if (e.latitude == null || e.longitude == null) continue;
@@ -167,6 +174,11 @@ class ExportService {
 
       buffer.writeln('<Placemark>');
       buffer.writeln('<name>${_xmlEscape(title)}</name>');
+      // Ikon custom (pohon hijau) DIHAPUS — walau sudah dicoba ganti ke
+      // https://, Google Earth Web tetap gagal fetch (dibuktikan lewat
+      // error di percobaan sebelumnya). Daripada terus coba-coba tanpa
+      // bisa diverifikasi, pakai pin default bawaan Google Earth saja —
+      // itu sudah pasti bekerja di semua platform.
       buffer.writeln('<description><![CDATA[${desc.toString()}]]></description>');
       buffer.writeln('<Point><coordinates>${e.longitude!.toStringAsFixed(7)},${e.latitude!.toStringAsFixed(7)},${e.ketinggianMdpl ?? 0}</coordinates></Point>');
       buffer.writeln('</Placemark>');

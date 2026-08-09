@@ -111,6 +111,16 @@ class PendataanDao extends DatabaseAccessor<AppDatabase> with _$PendataanDaoMixi
 
   Future<int> deleteAllEntries() => delete(pendataanEntries).go();
 
+  Future<List<PendataanEntry>> getAllEntriesOnce() => select(pendataanEntries).get();
+
+  /// Update kolom titikPengamatan SAJA — dipakai migrasi data satu kali
+  /// untuk menyamakan entri lama (dibuat sebelum aturan prefix 'TP-'
+  /// ada) supaya cocok dengan entri baru yang sudah ternormalisasi.
+  Future<void> updateTitikPengamatanOnly(int id, String titik) {
+    return (update(pendataanEntries)..where((t) => t.id.equals(id)))
+        .write(PendataanEntriesCompanion(titikPengamatan: Value(titik)));
+  }
+
   /// Dipanggil dari Detail screen setelah berhasil ambil elevasi dari
   /// Google Maps Elevation API. Pakai .write() (partial update) —
   /// BUKAN .replace() — supaya cuma kolom ini yang tersentuh, field

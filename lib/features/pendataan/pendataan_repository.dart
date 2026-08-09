@@ -1,6 +1,7 @@
 import 'package:drift/drift.dart';
 import '../../core/database/app_database.dart';
 import '../../core/database/tables.dart';
+import '../../core/utils/text_format.dart';
 
 /// Screen tidak boleh import Drift/DAO langsung — selalu lewat
 /// repository ini. Kalau nanti struktur database berubah, cukup
@@ -162,6 +163,26 @@ class PendataanRepository {
       _dao.getLatestEntryForTitik(titik);
 
   Future<int> hapusSemuaDataLokal() => _dao.deleteAllEntries();
+
+  /// Migrasi data SATU KALI (aman dipanggil berkali-kali, jadi no-op
+  /// setelah pertama kali) — menyamakan titikPengamatan entri LAMA yang
+  /// dibuat sebelum aturan prefix 'TP-' ditambahkan (Sprint export/KML),
+  /// supaya cocok dengan entri BARU yang sudah otomatis dinormalisasi.
+  /// Tanpa ini, fitur "salin kondisi habitat" tidak akan menemukan
+  /// kecocokan antara entri lama ('A01') dan entri baru ('TP-A01') di
+  /// titik yang sebenarnya sama.
+  Future<int> normalizeSemuaTitikPengamatanLama() async {
+    final all = await _dao.getAllEntriesOnce();
+    var fixed = 0;
+    for (final e in all) {
+      final normalized = normalizeTitik(e.titikPengamatan);
+      if (normalized != e.titikPengamatan) {
+        await _dao.updateTitikPengamatanOnly(e.id, normalized);
+        fixed++;
+      }
+    }
+    return fixed;
+  }
 
   Future<List<PendataanPhoto>> getPhotosForEntry(int entryId) =>
       _dao.getPhotosForEntry(entryId);
